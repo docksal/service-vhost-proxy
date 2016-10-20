@@ -1,0 +1,42 @@
+{% extends "layout.html" %}
+{% block title %}Networks{% endblock %}
+
+{% block content %}
+<table class="table table-striped table-bordered table-condensed">
+  <thead>
+    <th>Name</th>
+    <th>Driver</th>
+    <th>Containers</th>
+    <th>Actions</th>
+  </thead>
+  <tbody>
+    {% for network in networks %}
+      <tr>
+        <td>{{ network.Name }}</td>
+        <td>{{ network.Driver }}</td>
+        <td>
+          {% if network.Containers|length > 0 %}
+            <table class="table table-condensed">
+              <thead>
+                <th>Name</th>
+                <th>IPv4 Address</th>
+              </thead>
+              <tbody>
+                {% for container in network.Containers %}
+                  <tr>
+                    <td>{{ network.Containers[container]['Name'] }}</td>
+                    <td>{{ network.Containers[container]['IPv4Address'] }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          {% endif %}
+        </td>
+        <td>
+          <a href="{{ url_for('inspect_network', network_id=network.Id) }}" class="btn btn-info" target="_blank">Inspect</a>
+        </td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

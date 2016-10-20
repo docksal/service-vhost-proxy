@@ -1,0 +1,244 @@
+{% extends "layout.html" %}
+{% block title %}Containers{% endblock %}
+
+{% block content %}
+
+{% if 'projects' in containers and containers['projects']|length > 0 %}
+  <h2>Projects</h2>
+  <div class="panel-group" id="projects" role="tablist" aria-multiselectable="true">
+    {% for project in containers['projects'] %}
+      <div class="panel panel-default">
+        <div class="panel-heading" role="tab" id="{{ project }}-header">
+          <h4 class="panel-title">
+            <a role="button" data-toggle="collapse" data-parent="#projects" href="#{{ project }}-content" aria-expanded="false" aria-controls="{{ project }}-content">
+              <span class="caret"></span> {{ project }}
+            </a>
+          </h4>
+        </div>
+        <div id="{{ project }}-content" class="panel-collapse collapse" role="tabpanel" aria-labelledby="{{ project }}-header">
+          <div class="panel-body">
+            {% for id in containers['projects'][project] %}
+              <div{% if containers['projects'][project][id]['State'] == 'running' %} class="bg-success"{% else %} class="bg-danger"{% endif %} style="margin-bottom: 1em; padding: 1em">
+                <p><strong>Name:</strong> {{ containers['projects'][project][id]['Names']|first }}</p>
+                <p><strong>Image:</strong> {{ containers['projects'][project][id]['Image'] }}</p>
+                <p><strong>State:</strong> {{ containers['projects'][project][id]['State'] }}</p>
+                <p><strong>Status:</strong> {{ containers['projects'][project][id]['Status'] }}</p>
+                {% if 'io.docksal.virtual-host' in containers['projects'][project][id]['Labels'] %}
+                  <p><strong>Virtual Host:</strong> {{ containers['projects'][project][id]['Labels']['io.docksal.virtual-host'] }}</p>
+                {% endif %}
+                {% if 'io.docksal.project-root' in containers['projects'][project][id]['Labels'] %}
+                  <p><strong>Project Root:</strong> {{ containers['projects'][project][id]['Labels']['io.docksal.project-root'] }}</p>
+                {% endif %}
+                {% if containers['projects'][project][id]['Mounts']|length > 0 %}
+                  <p>
+                    <strong>Mounts</strong>
+                    <table class="table table-bordered" style="background-color: #fff">
+                      <thead>
+                        <th>Source</th>
+                        <th>Destination</th>
+                      </thead>
+                      <tbody>
+                        {% for mount in containers['projects'][project][id]['Mounts'] %}
+                          <tr>
+                            <td>{{ mount['Source'] }}</td>
+                            <td>{{ mount['Destination'] }}</td>
+                          </tr>
+                        {% endfor %}
+                      </tbody>
+                    </table>
+                  </p>
+                {% endif %}
+                <div class="btn-group">
+                  <a href="{{ url_for('logs', container_id=containers['projects'][project][id]['Id']) }}" class="btn btn-default" target="_blank">Logs</a>
+                  <a href="{{ url_for('inspect_container', container_id=containers['projects'][project][id]['Id']) }}" class="btn btn-default" target="_blank">Inspect</a>
+                  {% if containers['projects'][project][id]['State'] == 'running' %}
+                    <a href="http://192.168.64.100:8080/docker/{{ containers['projects'][project][id]['Id'] }}" class="btn btn-default" target="_blank">cAdvisor</a>
+                  {% endif %}
+                  <a href="#modal-{{ containers['projects'][project][id]['Id'] }}" class="btn btn-default" data-toggle="modal" data-target="#modal-{{ containers['projects'][project][id]['Id'] }}">Remove</a>
+                </div>
+                <div class="modal fade" id="modal-{{ containers['projects'][project][id]['Id'] }}" tabindex="-1" role="dialog" aria-labelledby="#modal-{{ containers['projects'][project][id]['Id'] }}-label">
+                  <div class="modal-dialog" role="document">
+                    <div class="modal-content">
+                      <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                        <h4 class="modal-title" id="modal-{{ containers['projects'][project][id]['Id'] }}-label">Modal title</h4>
+                      </div>
+                      <div class="modal-body">
+                        <p>Do you really want to remove {{ containers['projects'][project][id]['Names']|first }}?</p>
+                        <p>This action can't be undone.</p>
+                      </div>
+                      <div class="modal-footer">
+                        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                        <a href="{{ url_for('remove_container', container_id=containers['projects'][project][id]['Id']) }}" class="btn btn-primary">Remove</a>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% endif %}
+
+{% if 'docksal' in containers and containers['docksal']|length > 0 %}
+  <h2>Docksal Containers</h2>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <th>Name</th>
+      <th>Image</th>
+      <th>State</th>
+      <th>Status</th>
+      <th>Mounts</th>
+    </thead>
+    <tbody>
+      {% for id in containers['docksal'] %}
+        <tr{% if containers['docksal'][id]['State'] == 'running' %} class="success"{% else %} class="danger"{% endif %}>
+          <td>{{ containers['docksal'][id]['Names']|first }}</td>
+          <td>{{ containers['docksal'][id]['Image'] }}</td>
+          <td>{{ containers['docksal'][id]['State'] }}</td>
+          <td>{{ containers['docksal'][id]['Status'] }}</td>
+          <td>
+            {% if containers['docksal'][id]['Mounts']|length > 0 %}
+              <table class="table table-condensed">
+                <thead>
+                  <th>Source</th>
+                  <th>Destination</th>
+                </thead>
+                <tbody>
+                  {% for mount in containers['docksal'][id]['Mounts'] %}
+                    <tr>
+                      <td>{{ mount['Source'] }}</td>
+                      <td>{{ mount['Destination'] }}</td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            {% endif %}
+          </td>
+          <td>
+            <div class="btn-group">
+              <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                Actions <span class="caret"></span>
+              </button>
+              <ul class="dropdown-menu">
+                <li><a href="{{ url_for('logs', container_id=containers['docksal'][id]['Id']) }}" target="_blank">Logs</a></li>
+                <li><a href="{{ url_for('inspect_container', container_id=containers['docksal'][id]['Id']) }}" target="_blank">Inspect</a></li>
+                {% if containers['docksal'][id]['State'] == 'running' %}
+                  <li><a href="http://192.168.64.100:8080/docker/{{ containers['docksal'][id]['Id'] }}" target="_blank">cAdvisor</a></li>
+                {% endif %}
+                <li role="separator" class="divider"></li>
+                <li>
+                  <a href="#modal-{{ containers['docksal'][id]['Id'] }}" data-toggle="modal" data-target="#modal-{{ containers['docksal'][id]['Id'] }}">
+                    Remove
+                  </a>
+                </li>
+              </ul>
+            </div>
+            <div class="modal fade" id="modal-{{ containers['docksal'][id]['Id'] }}" tabindex="-1" role="dialog" aria-labelledby="#modal-{{ containers['docksal'][id]['Id'] }}-label">
+            <div class="modal-dialog" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                  <h4 class="modal-title" id="modal-{{ containers['docksal'][id]['Id'] }}-label">Modal title</h4>
+                </div>
+                <div class="modal-body">
+                  <p>Do you really want to remove {{ containers['docksal'][id]['Names']|first }}?</p>
+                  <p>This action can't be undone.</p>
+                </div>
+                <div class="modal-footer">
+                  <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                  <a href="{{ url_for('remove_container', container_id=containers['docksal'][id]['Id']) }}" class="btn btn-primary">Remove</a>
+                </div>
+              </div>
+            </div>
+          </div>
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endif %}
+
+{% if 'other' in containers and containers['other']|length > 0 %}
+  <h2>Other Containers</h2>
+  <table class="table table-bordered table-condensed">
+    <thead>
+      <th>Name</th>
+      <th>Image</th>
+      <th>State</th>
+      <th>Status</th>
+      <th>Mounts</th>
+    </thead>
+    <tbody>
+      {% for id in containers['other'] %}
+        <tr{% if containers['other'][id]['State'] == 'running' %} class="success"{% else %} class="danger"{% endif %}>
+          <td>{{ containers['other'][id]['Names']|first }}</td>
+          <td>{{ containers['other'][id]['Image'] }}</td>
+          <td>{{ containers['other'][id]['State'] }}</td>
+          <td>{{ containers['other'][id]['Status'] }}</td>
+          <td>
+            {% if containers['other'][id]['Mounts']|length > 0 %}
+              <table class="table table-condensed">
+                <thead>
+                  <th>Source</th>
+                  <th>Destination</th>
+                </thead>
+                <tbody>
+                  {% for mount in containers['other'][id]['Mounts'] %}
+                    <tr>
+                      <td>{{ mount['Source'] }}</td>
+                      <td>{{ mount['Destination'] }}</td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            {% endif %}
+          </td>
+          <td>
+            <div class="btn-group">
+              <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                Actions <span class="caret"></span>
+              </button>
+              <ul class="dropdown-menu">
+                <li><a href="{{ url_for('logs', container_id=containers['other'][id]['Id']) }}" target="_blank">Logs</a></li>
+                <li><a href="{{ url_for('inspect_container', container_id=containers['other'][id]['Id']) }}" target="_blank">Inspect</a></li>
+                {% if containers['other'][id]['State'] == 'running' %}
+                  <li><a href="http://192.168.64.100:8080/docker/{{ containers['other'][id]['Id'] }}" target="_blank">cAdvisor</a></li>
+                {% endif %}
+                <li role="separator" class="divider"></li>
+                <li>
+                  <a href="#modal-{{ containers['other'][id]['Id'] }}" data-toggle="modal" data-target="#modal-{{ containers['other'][id]['Id'] }}">
+                    Remove
+                  </a>
+                </li>
+              </ul>
+            </div>
+            <div class="modal fade" id="modal-{{ containers['other'][id]['Id'] }}" tabindex="-1" role="dialog" aria-labelledby="#modal-{{ containers['other'][id]['Id'] }}-label">
+            <div class="modal-dialog" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                  <h4 class="modal-title" id="modal-{{ containers['other'][id]['Id'] }}-label">Modal title</h4>
+                </div>
+                <div class="modal-body">
+                  <p>Do you really want to remove {{ containers['other'][id]['Names']|first }}?</p>
+                  <p>This action can't be undone.</p>
+                </div>
+                <div class="modal-footer">
+                  <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                  <a href="{{ url_for('remove_container', container_id=containers['other'][id]['Id']) }}" class="btn btn-primary">Remove</a>
+                </div>
+              </div>
+            </div>
+          </div>
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endif %}
+
+{% endblock %}
