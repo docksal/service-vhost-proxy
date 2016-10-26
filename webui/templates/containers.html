@@ -52,7 +52,7 @@
                   <a href="{{ url_for('logs', container_id=containers['projects'][project][id]['Id']) }}" class="btn btn-default" target="_blank">Logs</a>
                   <a href="{{ url_for('inspect_container', container_id=containers['projects'][project][id]['Id']) }}" class="btn btn-default" target="_blank">Inspect</a>
                   {% if containers['projects'][project][id]['State'] == 'running' %}
-                    <a href="http://192.168.64.100:8080/docker/{{ containers['projects'][project][id]['Id'] }}" class="btn btn-default" target="_blank">cAdvisor</a>
+                    <a href="/docker/{{ containers['projects'][project][id]['Id'] }}" class="btn btn-default" target="_blank">cAdvisor</a>
                   {% endif %}
                   <a href="#modal-{{ containers['projects'][project][id]['Id'] }}" class="btn btn-default" data-toggle="modal" data-target="#modal-{{ containers['projects'][project][id]['Id'] }}">Remove</a>
                 </div>
@@ -127,7 +127,7 @@
                 <li><a href="{{ url_for('logs', container_id=containers['docksal'][id]['Id']) }}" target="_blank">Logs</a></li>
                 <li><a href="{{ url_for('inspect_container', container_id=containers['docksal'][id]['Id']) }}" target="_blank">Inspect</a></li>
                 {% if containers['docksal'][id]['State'] == 'running' %}
-                  <li><a href="http://192.168.64.100:8080/docker/{{ containers['docksal'][id]['Id'] }}" target="_blank">cAdvisor</a></li>
+                  <li><a href="/docker/{{ containers['docksal'][id]['Id'] }}" target="_blank">cAdvisor</a></li>
                 {% endif %}
                 <li role="separator" class="divider"></li>
                 <li>
@@ -206,7 +206,7 @@
                 <li><a href="{{ url_for('logs', container_id=containers['other'][id]['Id']) }}" target="_blank">Logs</a></li>
                 <li><a href="{{ url_for('inspect_container', container_id=containers['other'][id]['Id']) }}" target="_blank">Inspect</a></li>
                 {% if containers['other'][id]['State'] == 'running' %}
-                  <li><a href="http://192.168.64.100:8080/docker/{{ containers['other'][id]['Id'] }}" target="_blank">cAdvisor</a></li>
+                  <li><a href="/docker/{{ containers['other'][id]['Id'] }}" target="_blank">cAdvisor</a></li>
                 {% endif %}
                 <li role="separator" class="divider"></li>
                 <li>
