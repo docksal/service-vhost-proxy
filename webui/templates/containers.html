@@ -7,7 +7,7 @@
   <h2>Projects</h2>
   <div class="panel-group" id="projects" role="tablist" aria-multiselectable="true">
     {% for project in containers['projects'] %}
-      <div class="panel panel-default">
+      <div id="{{ project }}" class="project {{ project }} panel panel-default">
         <div class="panel-heading" role="tab" id="{{ project }}-header">
           <h4 class="panel-title">
             <a role="button" data-toggle="collapse" data-parent="#projects" href="#{{ project }}-content" aria-expanded="false" aria-controls="{{ project }}-content">
@@ -18,19 +18,25 @@
         <div id="{{ project }}-content" class="panel-collapse collapse" role="tabpanel" aria-labelledby="{{ project }}-header">
           <div class="panel-body">
             {% for id in containers['projects'][project] %}
-              <div{% if containers['projects'][project][id]['State'] == 'running' %} class="bg-success"{% else %} class="bg-danger"{% endif %} style="margin-bottom: 1em; padding: 1em">
-                <p><strong>Name:</strong> {{ containers['projects'][project][id]['Names']|first }}</p>
-                <p><strong>Image:</strong> {{ containers['projects'][project][id]['Image'] }}</p>
-                <p><strong>State:</strong> {{ containers['projects'][project][id]['State'] }}</p>
-                <p><strong>Status:</strong> {{ containers['projects'][project][id]['Status'] }}</p>
+              <div{% if containers['projects'][project][id]['State'] == 'running' %} class="service {{ containers['projects'][project][id]['Labels']['com.docker.compose.service'] }} running bg-success"{% else %} class="service {{ containers['projects'][project][id]['Labels']['com.docker.compose.service'] }} not-running bg-danger"{% endif %} style="margin-bottom: 1em; padding: 1em">
+                <p class="name">
+                  <strong>Name:</strong> {{ containers['projects'][project][id]['Names']|first }}
+                  {% if containers['projects'][project][id]['State'] == 'running' %}
+                    <span class="badge">CPU: {{ containers['projects'][project][id]['Stats']['cpu'] }}</span>
+                    <span class="badge">Memory: {{ containers['projects'][project][id]['Stats']['memory'] }}</span>
+                  {% endif %}
+                </p>
+                <p class="image"><strong>Image:</strong> {{ containers['projects'][project][id]['Image'] }}</p>
+                <p class="state"><strong>State:</strong> {{ containers['projects'][project][id]['State'] }}</p>
+                <p class="status"><strong>Status:</strong> {{ containers['projects'][project][id]['Status'] }}</p>
                 {% if 'io.docksal.virtual-host' in containers['projects'][project][id]['Labels'] %}
-                  <p><strong>Virtual Host:</strong> {{ containers['projects'][project][id]['Labels']['io.docksal.virtual-host'] }}</p>
+                  <p class="virtual-host"><strong>Virtual Host:</strong> {{ containers['projects'][project][id]['Labels']['io.docksal.virtual-host'] }}</p>
                 {% endif %}
                 {% if 'io.docksal.project-root' in containers['projects'][project][id]['Labels'] %}
-                  <p><strong>Project Root:</strong> {{ containers['projects'][project][id]['Labels']['io.docksal.project-root'] }}</p>
+                  <p class="project-root"><strong>Project Root:</strong> {{ containers['projects'][project][id]['Labels']['io.docksal.project-root'] }}</p>
                 {% endif %}
                 {% if containers['projects'][project][id]['Mounts']|length > 0 %}
-                  <p>
+                  <p class="mounts">
                     <strong>Mounts</strong>
                     <table class="table table-bordered" style="background-color: #fff">
                       <thead>
@@ -96,7 +102,13 @@
     <tbody>
       {% for id in containers['docksal'] %}
         <tr{% if containers['docksal'][id]['State'] == 'running' %} class="success"{% else %} class="danger"{% endif %}>
-          <td>{{ containers['docksal'][id]['Names']|first }}</td>
+          <td>
+            {{ containers['docksal'][id]['Names']|first }}
+            {% if containers['docksal'][id]['State'] == 'running' %}
+              <span class="badge">CPU: {{ containers['docksal'][id]['Stats']['cpu'] }}</span>
+              <span class="badge">Memory: {{ containers['docksal'][id]['Stats']['memory'] }}</span>
+            {% endif %}
+          </td>
           <td>{{ containers['docksal'][id]['Image'] }}</td>
           <td>{{ containers['docksal'][id]['State'] }}</td>
           <td>{{ containers['docksal'][id]['Status'] }}</td>
@@ -175,7 +187,13 @@
     <tbody>
       {% for id in containers['other'] %}
         <tr{% if containers['other'][id]['State'] == 'running' %} class="success"{% else %} class="danger"{% endif %}>
-          <td>{{ containers['other'][id]['Names']|first }}</td>
+          <td>
+            {{ containers['other'][id]['Names']|first }}
+            {% if containers['other'][id]['State'] == 'running' %}
+              <span class="badge">CPU: {{ containers['other'][id]['Stats']['cpu'] }}</span>
+              <span class="badge">Memory: {{ containers['other'][id]['Stats']['memory'] }}</span>
+            {% endif %}
+          </td>
           <td>{{ containers['other'][id]['Image'] }}</td>
           <td>{{ containers['other'][id]['State'] }}</td>
           <td>{{ containers['other'][id]['Status'] }}</td>
@@ -241,4 +259,8 @@
   </table>
 {% endif %}
 
+{% endblock %}
+
+{% block js %}
+<script src="{{ url_for('static', filename='js/containers.js') }}"></script>
 {% endblock %}

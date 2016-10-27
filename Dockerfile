@@ -36,9 +36,6 @@ RUN curl -sSL https://github.com/google/cadvisor/releases/download/v$CADVISOR_VE
 RUN /usr/local/bin/pip install Flask docker-py && \
  	rm -rf /var/cache/apk/*
 
-ENV FLASK_APP /var/www/webui/app.py
-ENV FLASK_DEBUG 0
-
 COPY webui /var/www/webui
 
 # Generate SSL certificate and key

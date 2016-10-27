@@ -14,6 +14,13 @@ app = DispatcherMiddleware(None, {
 
 cli = Client(base_url='unix://var/run/docker.sock')
 
+def hbytes(num):
+    for x in ['bytes','KB','MB','GB']:
+        if num < 1024.0:
+            return "%3.1f%s" % (num, x)
+        num /= 1024.0
+    return "%3.1f%s" % (num, 'TB')
+
 @webui.route('/')
 def containers():
     containers = cli.containers(False, True)
@@ -23,6 +30,14 @@ def containers():
       'other': {}
     }
     for container in containers:
+        if container['State'] == 'running':
+            stats = cli.stats(container['Id'], True, False)
+            cpu_delta = stats['cpu_stats']['cpu_usage']['total_usage'] -  stats['precpu_stats']['cpu_usage']['total_usage']
+            system_delta = stats['cpu_stats']['system_cpu_usage'] - stats['precpu_stats']['system_cpu_usage']
+            container['Stats'] = {
+                'cpu': '{0:.2f}'.format(cpu_delta / system_delta * 100),
+                'memory': '{0}'.format(hbytes(stats['memory_stats']['usage']))
+            }
         if 'io.docksal.group' in container['Labels']:
             grouped_containers['docksal'][container['Id']] = container
         elif 'com.docker.compose.project' in container['Labels']:
