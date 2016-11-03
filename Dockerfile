@@ -1,4 +1,4 @@
-FROM alpine:3.4
+FROM python:3-alpine
 
 MAINTAINER Leonid Makarov <leonid.makarov@blinkreaction.com>
 
@@ -13,6 +13,7 @@ RUN apk add --update --no-cache \
 
 ENV DOCKER_VERSION 1.12.2
 ENV DOCKER_GEN_VERSION 0.7.3
+ENV CADVISOR_VERSION 0.24.1
 
 # Install docker client binary from Github (if not mounting binary from host)
 RUN curl -sSL -O "https://get.docker.com/builds/$(uname -s)/$(uname -m)/docker-$DOCKER_VERSION.tgz" && \
@@ -26,6 +27,16 @@ RUN curl -sSL https://github.com/jwilder/docker-gen/releases/download/$DOCKER_GE
 	rm $DOCKER_GEN_TARFILE
 
 RUN chown -R nginx:nginx /var/lib/nginx
+
+# Add cAdvisor
+RUN curl -sSL https://github.com/google/cadvisor/releases/download/v$CADVISOR_VERSION/cadvisor -o /usr/local/bin/cadvisor && \
+  chmod +x /usr/local/bin/*
+
+# Add webui
+RUN /usr/local/bin/pip install Flask docker-py && \
+ 	rm -rf /var/cache/apk/*
+
+COPY webui /var/www/webui
 
 # Generate SSL certificate and key
 RUN openssl req -batch -nodes -newkey rsa:2048 -keyout /etc/nginx/server.key -out /tmp/server.csr && \
@@ -48,5 +59,8 @@ COPY www /var/www/proxy
 ENV INACTIVITY_TIMEOUT 30m
 # Disable debug output by default
 ENV SUPERVISOR_DEBUG 0
+
+EXPOSE 80
+EXPOSE 443
 
 CMD ["supervisord", "-n"]
