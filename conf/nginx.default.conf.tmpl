@@ -17,6 +17,44 @@
 	{{ end }}
 {{ end }}
 
+{{ define "http" }}
+	# HTTP
+	server {
+		listen 80;
+		{{ range $host := split .Hosts "," }}
+			server_name {{ $host }};
+		{{ end }}
+
+		location / {
+			proxy_pass http://{{ .Upstream }};
+		}
+	}
+{{ end }}
+
+{{ define "https" }}
+	# HTTPS
+	server {
+
+		listen 443;
+		{{ range $host := split .Hosts "," }}
+			server_name {{ $host }};
+		{{ end }}
+
+		ssl_certificate           /etc/nginx/server.crt;
+		ssl_certificate_key       /etc/nginx/server.key;
+
+		ssl on;
+		ssl_session_cache  builtin:1000  shared:SSL:10m;
+		ssl_protocols  TLSv1 TLSv1.1 TLSv1.2;
+		ssl_ciphers HIGH:!aNULL:!eNULL:!EXPORT:!CAMELLIA:!DES:!MD5:!PSK:!RC4;
+		ssl_prefer_server_ciphers on;
+
+		location / {
+			proxy_pass http://{{ .Upstream }};
+		}
+	}
+{{ end }}
+
 {{ $pr_containers := whereLabelExists $ "com.docker.compose.service" }}
 
 {{ range $hosts, $containers_vhost := groupByLabel $pr_containers "io.docksal.virtual-host" }}
@@ -25,8 +63,9 @@
 
 		{{ $pr_container := $containers | first }}
 		{{ $project := index $pr_container.Labels "com.docker.compose.project" }}
+		{{ $upstream := (print $project "-" $service) }}
 		## Reachable via "{{ $project }}_default" network
-		upstream {{ $project}}-{{ $service }} {
+		upstream {{ $upstream }} {
 		{{ range $container := $containers }}
 			{{ $addrLen := len $container.Addresses }}
 
@@ -49,39 +88,11 @@
 		{{ end }}
 		}
 
-		# HTTP
-		server {
-			listen 80;
-			{{ range $server_name := split $hosts "," }}
-			server_name {{ $server_name }};
-			{{ end }}
+		{{ template "http" (dict "Hosts" $hosts "Upstream" $upstream) }}
 
-			location / {
-				proxy_pass http://{{ $project}}-{{ $service }};
-			}
-		}
-
-		# HTTPS
-		server {
-
-			listen 443;
-			{{ range $server_name := split $hosts "," }}
-			server_name {{ $server_name }};
-			{{ end }}
-
-			ssl_certificate           /etc/nginx/server.crt;
-			ssl_certificate_key       /etc/nginx/server.key;
-
-			ssl on;
-			ssl_session_cache  builtin:1000  shared:SSL:10m;
-			ssl_protocols  TLSv1 TLSv1.1 TLSv1.2;
-			ssl_ciphers HIGH:!aNULL:!eNULL:!EXPORT:!CAMELLIA:!DES:!MD5:!PSK:!RC4;
-			ssl_prefer_server_ciphers on;
-
-			location / {
-			  proxy_pass http://{{ $project}}-{{ $service }};
-			}
-		}
+		{{ if (and (exists "/etc/nginx/server.crt") (exists "/etc/nginx/server.key")) }}
+			{{ template "https" (dict "Hosts" $hosts "Upstream" $upstream) }}
+		{{ end }}
 
 	{{ end }}
 
@@ -93,9 +104,9 @@
 
 {{ range $hosts, $containers := groupByLabel $d_containers "io.docksal.virtual-host" }}
 
-	{{ range $server_name := split $hosts "," }}
+	{{ range $host := split $hosts "," }}
 
-		upstream {{ $server_name }} {
+		upstream {{ $host }} {
 		{{ range $container := $containers }}
 			{{ $addrLen := len $container.Addresses }}
 
@@ -118,35 +129,11 @@
 		{{ end }}
 		}
 
-		# HTTP
-		server {
-			listen 80;
-			server_name {{ $server_name }};
+		{{ template "http" (dict "Hosts" $host "Upstream" $host) }}
 
-			location / {
-				proxy_pass http://{{ $server_name }};
-			}
-		}
-
-		# HTTPS
-		server {
-
-			listen 443;
-			server_name {{ $server_name }};
-
-			ssl_certificate           /etc/nginx/server.crt;
-			ssl_certificate_key       /etc/nginx/server.key;
-
-			ssl on;
-			ssl_session_cache  builtin:1000  shared:SSL:10m;
-			ssl_protocols  TLSv1 TLSv1.1 TLSv1.2;
-			ssl_ciphers HIGH:!aNULL:!eNULL:!EXPORT:!CAMELLIA:!DES:!MD5:!PSK:!RC4;
-			ssl_prefer_server_ciphers on;
-
-			location / {
-			  proxy_pass http://{{ $server_name }};
-			}
-		}
+		{{ if (and (exists "/etc/nginx/server.crt") (exists "/etc/nginx/server.key")) }}
+			{{ template "https" (dict "Hosts" $host "Upstream" $host) }}
+		{{ end }}
 
 	{{ end }}
 
