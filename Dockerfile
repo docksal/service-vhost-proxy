@@ -47,8 +47,8 @@ COPY www /var/www/proxy
 
 # Stop inactive containers after timeout
 ENV INACTIVITY_TIMEOUT 24h
-# Remove inactive containers after timeout
-ENV REMOVE_INACTIVITY_TIMEOUT 168h
+# Remove dangling projects (containers and sources) after timeout
+ENV DANGLING_TIMEOUT 14d
 # Disable debug output by default
 ENV PROXY_DEBUG 0
 
