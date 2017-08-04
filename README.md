@@ -63,3 +63,19 @@ docker run -d --name docksal-vhost-proxy --label "io.docksal.group=system" --res
 `PROXY_DEBUG`
 
 Set to `1` to enable debug logging. Check logs with `docker logs docksal-vhost-proxy`.
+
+#### Own certificates
+
+You can use your own SSL certificate per project. For this to work make sure your
+projects are bind to /projects folder (i.e via docksal_projects) and contains 
+```
+certs/server.key
+certs/server.crt
+```
+owned by user 0 in root of your project.
+
+##### Redirect HTTP to HTTPS
+Put an empty file called `https_only` in the same directory (`certs/https_only`)
+to make redirect http requests to HTTPS. For the redirect, the first
+given domain in the label `io.docksal.virtual-host` will be used.
+
