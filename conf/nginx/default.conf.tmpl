@@ -156,7 +156,9 @@
 		{{ template "http" (dict "Hosts" $host "Upstream" $host) }}
 
 		{{ if (and (exists "/etc/nginx/server.crt") (exists "/etc/nginx/server.key")) }}
-			{{ template "https" (dict "Hosts" $host "Upstream" $host) }}
+      {{ $cert := "/etc/nginx/server.crt" }}
+      {{ $cert_key := "/etc/nginx/server.key" }}
+			{{ template "https" (dict "Hosts" $host "Upstream" $host "Cert" $cert "CertKey" $cert_key) }}
 		{{ end }}
 
 	{{ end }}
