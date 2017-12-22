@@ -31,6 +31,17 @@
 	}
 {{ end }}
 
+{{ define "http_redirect" }}
+	# HTTP Redirect to HTTPS
+	server {
+		listen 80;
+		{{ range $host := split .Hosts "," }}
+			server_name {{ $host }};
+		{{ end }}
+		return 307 https://{{ index (split .Hosts ",") 0 }}$request_uri;
+	}
+{{ end }}
+
 {{ define "https" }}
 	# HTTPS
 	server {
@@ -40,8 +51,8 @@
 			server_name {{ $host }};
 		{{ end }}
 
-		ssl_certificate           /etc/nginx/server.crt;
-		ssl_certificate_key       /etc/nginx/server.key;
+		ssl_certificate           {{ .Cert }};
+		ssl_certificate_key       {{ .CertKey }};
 
 		ssl on;
 		ssl_session_cache  builtin:1000  shared:SSL:10m;
@@ -88,10 +99,23 @@
 		{{ end }}
 		}
 
-		{{ template "http" (dict "Hosts" $hosts "Upstream" $upstream) }}
+		{{ $pot_redirect := (print "/projects/" $project "/certs/https_only") }}
+		{{ if (exists $pot_redirect) }}
+			{{ template "http_redirect" (dict "Hosts" $hosts) }}
+		{{ else }}
+			{{ template "http" (dict "Hosts" $hosts "Upstream" $upstream) }}
+		{{ end }}
 
-		{{ if (and (exists "/etc/nginx/server.crt") (exists "/etc/nginx/server.key")) }}
-			{{ template "https" (dict "Hosts" $hosts "Upstream" $upstream) }}
+		{{ $pot_key := (print "/projects/" $project "/certs/server.key") }}
+		{{ $pot_crt := (print "/projects/" $project "/certs/server.crt") }}
+		{{ if (and (exists $pot_crt) (exists $pot_key)) }}
+			{{ $cert := $pot_crt }}
+			{{ $cert_key := $pot_key }}
+			{{ template "https" (dict "Hosts" $hosts "Upstream" $upstream "Cert" $cert "CertKey" $cert_key) }}
+		{{ else if (and (exists "/etc/nginx/server.crt") (exists "/etc/nginx/server.key")) }}
+			{{ $cert := "/etc/nginx/server.crt" }}
+			{{ $cert_key := "/etc/nginx/server.key" }}
+			{{ template "https" (dict "Hosts" $hosts "Upstream" $upstream "Cert" $cert "CertKey" $cert_key) }}
 		{{ end }}
 
 	{{ end }}
@@ -132,7 +156,9 @@
 		{{ template "http" (dict "Hosts" $host "Upstream" $host) }}
 
 		{{ if (and (exists "/etc/nginx/server.crt") (exists "/etc/nginx/server.key")) }}
-			{{ template "https" (dict "Hosts" $host "Upstream" $host) }}
+      {{ $cert := "/etc/nginx/server.crt" }}
+      {{ $cert_key := "/etc/nginx/server.key" }}
+			{{ template "https" (dict "Hosts" $host "Upstream" $host "Cert" $cert "CertKey" $cert_key) }}
 		{{ end }}
 
 	{{ end }}
