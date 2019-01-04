@@ -1,40 +1,67 @@
 <html>
   <head>
-    <title>Waking up the daemons...</title>
+    <title>Restarting project containers...</title>
     <meta http-equiv="refresh" content="10">
 
     <style>
     html, body
     {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
       height: 100%;
+      min-width: 800px;
       margin: 0;
       padding: 0;
-    }
-
-    body {
       background-color: #191F26;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      color: #fff;
     }
 
-    div {
-      position: relative;
-      height: 100%;
-      width: 100%;
+    div#flex {
+      display: flex;
+      background: url(images/animat-rocket-color.gif);
+      background-size: 38%;
+      background-repeat: no-repeat;
+      min-height: 300px;
+      max-height: 300px;
+      min-width: 800px;
+      max-width: 800px;
     }
 
-    div img {
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
+    div#text {
+      padding-inline-start: 35%;
       margin: auto;
     }
+
+    div#title {
+      font-size: xx-large;
+      margin-bottom: 1em;
+    }
+
+    .small {
+      font-size: small;
+    }
+
     </style>
+
 
   </head>
   <body>
-    <div>
-      <img src="//i.imgur.com/csmabF5.gif" alt="Loading..." height="600px" width="800px">
+    <div id="flex">
+      <div id="text">
+        <div id="title">Restarting project containers</div>
+        <div id="description">
+          <p>Docksal has found existing containers for this project and is trying to start them now.</p>
+          <p>The page will auto-reload and navigate to your project once they start.</p>
+          <br/>
+          <p class="small">
+            If you are seeing this page for too long, then something might have failed. 
+            In this case you may want to check docksal-vhost-proxy logs.
+          </p>
+        </div>  
+      </div>
     </div>
   </body>
 </html>
