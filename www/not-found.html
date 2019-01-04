@@ -1,39 +1,22 @@
 <html>
   <head>
-    <title>Project Not Found.</title>
-
-    <style>
-    html, body
-    {
-      height: 100%;
-      margin: 0;
-      padding: 0;
-    }
-
-    body {
-      background-color: #bbece6;
-    }
-
-    div {
-      position: relative;
-      height: 100%;
-      width: 100%;
-    }
-
-    div img {
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      margin: auto;
-    }
-    </style>
-
+    <title>Project was not found</title>
+    <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <div>
-      <img src="//i.imgur.com/nt9ZFBt.jpg" alt="Loading..." height="428px" width="640px">
+    <div id="flex">
+      <img src="images/icons8-unavailable-480.png" />
+      <div id="text">
+        <div id="title">Project was not found</div>
+        <div id="description">
+          <p>Docksal could not find the project by this URL. Make sure you have typed out the URL correctly.</p>
+          <p>Check that host is properly assigned to a project and is visible in <code>fin vhosts</code> command output.</p>
+          <br/>
+          <p class="small">
+            For more details check logs: <code>fin docker logs docksal-vhost-proxy</code>.
+          </p>
+        </div>  
+      </div>
     </div>
   </body>
 </html>
