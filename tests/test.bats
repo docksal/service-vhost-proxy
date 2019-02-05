@@ -178,7 +178,7 @@ _healthcheck_wait ()
 	fin @project1 stop
 
 	run curl http://project1.docksal
-	[[ "$output" =~ "Waking up the daemons..." ]]
+	[[ "$output" =~ "Restarting project" ]]
 	unset output
 
 	run curl http://project1.docksal
@@ -193,7 +193,7 @@ _healthcheck_wait ()
 	fin @project1 stop
 
 	run curl -k https://project1.docksal
-	[[ "$output" =~ "Waking up the daemons..." ]]
+	[[ "$output" =~ "Restarting project" ]]
 	unset output
 
 	run curl -k https://project1.docksal
