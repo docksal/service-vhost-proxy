@@ -5,6 +5,17 @@ VERSION ?= dev
 REPO = docksal/vhost-proxy
 NAME = docksal-vhost-proxy
 
+DOCKSAL_VHOST_PROXY_ACCESS_LOG = 1
+DOCKSAL_VHOST_PROXY_DEBUG_LOG = 1
+DOCKSAL_VHOST_PROXY_STATS_LOG = 1
+
+# Setting these while testing locally may result in data loss, so only use in CI.
+# Only use seconds here, so that these can be used with "sleep" as well.
+PROJECT_INACTIVITY_TIMEOUT ?= 0
+PROJECT_DANGLING_TIMEOUT ?= 0
+
+PROJECTS_ROOT = $(PWD)/projects
+
 .EXPORT_ALL_VARIABLES:
 
 .PHONY: build exec test push shell run start stop logs debug clean release
@@ -13,6 +24,7 @@ build:
 	docker build -t ${REPO}:${VERSION} .
 
 test:
+	tests/init_test_projects.sh
 	IMAGE=${REPO}:${VERSION} bats tests/test.bats
 
 push:
