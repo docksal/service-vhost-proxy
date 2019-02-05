@@ -1,7 +1,7 @@
 #!/usr/bin/env bats
 
 # Debugging
-teardown() {
+teardown () {
 	echo
 	echo "Output:"
 	echo "================================================================"
@@ -19,9 +19,9 @@ _healthcheck ()
 	# Wait for 5s then exit with 0 if a container does not have a health status property
 	# Necessary for backward compatibility with images that do not support health checks
 	if [[ $? != 0 ]]; then
-	echo "Waiting 10s for container to start..."
-	sleep 10
-	return 0
+		echo "Waiting 10s for container to start..."
+		sleep 10
+		return 0
 	fi
 
 	# If it does, check the status
