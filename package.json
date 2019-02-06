@@ -1,0 +1,8 @@
+{
+  "name": "docksal-vhost-proxy",
+  "description": "Dev dependencies",
+  "version": "1.0.0",
+  "devDependencies": {
+    "inline-source": "*"
+  }
+}
