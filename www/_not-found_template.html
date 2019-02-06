@@ -1,0 +1,23 @@
+<html>
+  <head>
+    <title>Docksal :: Project not found</title>
+    <link inline rel="stylesheet" href="styles.css" />
+    <link inline rel="icon" type="image/png" href="images/favicon.ico"/>
+  </head>
+  <body>
+    <div id="flex">
+      <img inline src="images/icons8-unavailable-480.png" />
+      <div id="text">
+        <div id="title">Project not found</div>
+        <div id="description">
+          <p>Docksal could not find the project by this URL. Make sure you have typed out the URL correctly.</p>
+          <p>Check that host is properly assigned to a project and is visible in <code>fin vhosts</code> command output.</p>
+          <br/>
+          <p class="small">
+            For more details check logs: <code>fin docker logs docksal-vhost-proxy</code>.
+          </p>
+        </div>  
+      </div>
+    </div>
+  </body>
+</html>

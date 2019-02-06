@@ -53,6 +53,11 @@ release:
 curl:
 	docker run -t --rm badouralix/curl-http2 ${ARGS}
 
+# Builds 'www/_loading_template.html' into 'www/loading.html' a static page with no external dependencies,
+# and does the same for not-found.html
+html:
+	npm install && node www/build.js
+
 clean:
 	docker rm -vf ${NAME} || true
 	rm -rf projects
