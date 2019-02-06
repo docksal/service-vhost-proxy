@@ -4,6 +4,9 @@
  */
 const { inlineSource } = require('inline-source');
 
+// Colored terminal output
+const chalk = require('chalk');
+
 const fs = require('fs');
 const path = require('path');
 
@@ -14,7 +17,7 @@ process.chdir(__dirname)
 const loadingPage = path.resolve('_loading_template.html');
 
 inlineSource(loadingPage, { compress: true, }).then(html => {
-  console.log('Writing loading.html...');
+  console.log(chalk.green('Writing loading.html...'));
   fs.writeFileSync('loading.html', html);
 }).catch(err => {
   console.error(`Failed generating loading.html \n${err}`);
@@ -24,7 +27,7 @@ inlineSource(loadingPage, { compress: true, }).then(html => {
 const notFoundPage = path.resolve('_not-found_template.html');
 
 inlineSource(notFoundPage, { compress: true, }).then(html => {
-  console.log('Writing not-found.html...');
+  console.log(chalk.green('Writing not-found.html...'));
   fs.writeFileSync('not-found.html', html);
 }).catch(err => {
   console.error(`Failed generating not-found.html \n${err}`);
