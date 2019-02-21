@@ -13,6 +13,7 @@ PROJECT_INACTIVITY_TIMEOUT = 30s
 PROJECT_DANGLING_TIMEOUT = 60s
 
 # Do not use ?= here to prevent possible data loss on the host system
+PROJECTS_ROOT = $(PWD)/tests/projects_mount
 
 -include tests/env_make
 

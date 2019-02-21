@@ -1,0 +1,9 @@
+version: "2.1"
+
+services:
+  web:
+    extends:
+      file: ${HOME}/.docksal/stacks/services.yml
+      service: nginx
+    environment:
+    - NGINX_VHOST_PRESET=html
