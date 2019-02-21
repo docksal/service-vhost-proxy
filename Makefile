@@ -1,6 +1,7 @@
--include env_make
+DOCKER ?= docker
 
 VERSION ?= dev
+TAG ?= $(VERSION)
 
 REPO = docksal/vhost-proxy
 NAME = docksal-vhost-proxy
@@ -8,65 +9,62 @@ NAME = docksal-vhost-proxy
 DOCKSAL_VHOST_PROXY_ACCESS_LOG = 1
 DOCKSAL_VHOST_PROXY_DEBUG_LOG = 1
 DOCKSAL_VHOST_PROXY_STATS_LOG = 1
+PROJECT_INACTIVITY_TIMEOUT = 30s
+PROJECT_DANGLING_TIMEOUT = 60s
 
-# Setting these while testing locally may result in data loss, so only use in CI.
-# Only use seconds here, so that these can be used with "sleep" as well.
-PROJECT_INACTIVITY_TIMEOUT ?= 0
-PROJECT_DANGLING_TIMEOUT ?= 0
+# Do not use ?= here to prevent possible data loss on the host system
 
-PROJECTS_ROOT = $(PWD)/projects
+-include tests/env_make
 
 .EXPORT_ALL_VARIABLES:
 
 .PHONY: build exec test push shell run start stop logs debug clean release
 
+default: build
+
 build:
-	docker build -t ${REPO}:${VERSION} .
+	$(DOCKER) build -t $(REPO):$(TAG) .
 
 test:
-	tests/init_test_projects.sh
-	IMAGE=${REPO}:${VERSION} bats tests/test.bats
+	tests/create_test_projects.sh
+	IMAGE=$(REPO):$(TAG) tests/test.bats
 
 push:
-	docker push ${REPO}:${VERSION}
-
-exec:
-	@docker exec ${NAME} ${CMD}
-
-exec-it:
-	@docker exec -it ${NAME} ${CMD}
-
-shell:
-	@make exec-it -e CMD=bash
+	$(DOCKER) push $(REPO):$(TAG)
 
 conf-vhosts:
 	make exec -e CMD='cat /etc/nginx/conf.d/vhosts.conf'
 
 # This is the only place where fin is used/necessary
 start:
-	IMAGE_VHOST_PROXY=${REPO}:${VERSION} fin system reset vhost-proxy
+	mkdir -p $(PROJECTS_ROOT)
+	IMAGE_VHOST_PROXY=$(REPO):$(TAG) fin system reset vhost-proxy
+
+exec:
+	$(DOCKER) exec $(NAME) bash -lc '$(CMD)'
+
+exec-it:
+	$(DOCKER) exec -it $(NAME) bash -lic '$(CMD)'
 
 stop:
-	docker stop ${NAME}
+	$(DOCKER) stop $(NAME)
 
 logs:
-	docker logs ${NAME}
+	$(DOCKER) logs $(NAME)
 
 logs-follow:
-	docker logs -f ${NAME}
+	$(DOCKER) logs -f $(NAME)
 
 debug: build start logs-follow
 
-release:
-	@scripts/release.sh
-
-# Curl command with http2 support via a docker container
+# Curl command with http2 support via a $(DOCKER) container
 # Usage: make curl -e ARGS='-kI https://docksal.io'
 curl:
-	docker run -t --rm badouralix/curl-http2 ${ARGS}
+	$(DOCKER) run -t --rm --dns=192.168.64.100 --dns=8.8.8.8 badouralix/curl-http2 ${ARGS}
 
 clean:
-	docker rm -vf ${NAME} || true
-	rm -rf projects
+	$(DOCKER) rm -vf $(NAME) || true
+	rm -rf $(PROJECTS_ROOT)
 
-default: build
+release:
+	@scripts/release.sh
