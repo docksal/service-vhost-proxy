@@ -36,10 +36,12 @@ RUN set -xe; \
 	curl -sSL https://github.com/hairyhenderson/gomplate/releases/download/v${GOMPLATE_VERSION}/gomplate_linux-amd64-slim -o /usr/local/bin/gomplate; \
 	chmod +x /usr/local/bin/gomplate
 
-# Symlink openresety config folder to /etc/nginx to preserver full compatibility with original nginx setup
 RUN set -xe; \
+	# Symlink openresety config folder to /etc/nginx to preserver full compatibility with original nginx setup
 	rm -rf /etc/nginx && ln -s /usr/local/openresty/nginx/conf /etc/nginx ; \
-	mkdir -p /etc/nginx/conf.d
+	mkdir -p /etc/nginx/conf.d ; \
+	# Also symlink nginx binary to a location in PATH
+	ln -s /usr/local/openresty/nginx/sbin/nginx /usr/sbin/nginx
 
 # Certs
 RUN set -xe; \
