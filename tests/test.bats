@@ -191,7 +191,7 @@ _healthcheck_wait ()
 	unset output
 
 	# Give docker-gen and nginx a little time to reload config
-	sleep 1
+	sleep 2
 
 	run curl -sS http://project2.docksal
 	[[ "$output" =~ "Project 2" ]]
@@ -209,7 +209,7 @@ _healthcheck_wait ()
 	unset output
 
 	# Give docker-gen and nginx a little time to reload config
-	sleep 1
+	sleep 2
 
 	run curl -sSk https://project2.docksal
 	[[ "$output" =~ "Project 2" ]]
@@ -352,7 +352,7 @@ _healthcheck_wait ()
 		nginx:alpine
 
 	# Give docker-gen and nginx a little time to reload config
-	sleep 1
+	sleep 2
 
 	# Check custom cert was picked up
 	run make conf-vhosts
@@ -379,7 +379,7 @@ _healthcheck_wait ()
 		nginx:alpine
 
 	# Give docker-gen and nginx a little time to reload config
-	sleep 1
+	sleep 2
 
 	# Check server_name is intact while custom cert was picked up
 	run make conf-vhosts
