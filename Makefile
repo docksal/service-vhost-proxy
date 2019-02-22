@@ -34,9 +34,8 @@ build:
 	$(DOCKER) build -t $(REPO):$(TAG) .
 
 test:
+	# Create test projects before starting tests. This allows using "fin @project" aliases in tests.
 	tests/create_test_projects.sh
-	# Stop crond so if does not interfere with tests
-	make exec -e CMD='supervisorctl stop crond'
 	IMAGE=$(REPO):$(TAG) tests/test.bats
 
 push:
@@ -52,6 +51,10 @@ start: clean
 	# Copy custom certs used in cert tets
 	cp -R tests/certs ~/.docksal
 	IMAGE_VHOST_PROXY=$(REPO):$(TAG) fin system reset vhost-proxy
+	# Give vhost-proxy a bit of time to initialize
+	sleep ${DELAY}
+	# Stop crond, so it does not interfere with tests
+	make exec -e CMD='supervisorctl stop crond'
 
 exec:
 	$(DOCKER) exec $(NAME) bash -lc '$(CMD)'
