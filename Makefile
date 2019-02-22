@@ -35,6 +35,8 @@ build:
 
 test:
 	tests/create_test_projects.sh
+	# Stop crond so if does not interfere with tests
+	make exec -e CMD='supervisorctl stop crond'
 	IMAGE=$(REPO):$(TAG) tests/test.bats
 
 push:

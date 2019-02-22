@@ -80,11 +80,21 @@ _healthcheck_wait ()
 @test "Cron is working" {
 	[[ ${SKIP} == 1 ]] && skip
 
+	# Start cron first (disabled during tests by default)
+	run make exec -e CMD='supervisorctl start crond'
+	[[ "$output" =~ "crond: started" ]]
+	unset output
+
 	# 'proxyctl cron' should be invoked every minute
 	sleep 60s
 
 	run make logs
 	echo "$output" | grep "[proxyctl] [cron]"
+	unset output
+
+	# Stop cron after this test so it does not interfere with other tests.
+	run make exec -e CMD='supervisorctl stop crond'
+	[[ "$output" =~ "crond: stopped" ]]
 	unset output
 }
 
@@ -140,9 +150,6 @@ _healthcheck_wait ()
 	[[ "$PROJECT_INACTIVITY_TIMEOUT" == "0" ]] &&
 		skip "Stopping has been disabled via PROJECT_INACTIVITY_TIMEOUT=0"
 
-	# Kill crontab, so that cron does not interfere with tests
-	make exec -e CMD='crontab -r'
-
 	# Restart projects to reset timing
 	fin @project1 project restart
 	fin @project2 project restart
@@ -170,9 +177,9 @@ _healthcheck_wait ()
 	unset output
 
 	# Check projects were stopped, but not removed
-	run fin pl -a
-	echo "$output" | grep project1 | grep 'Exited (0)'
-	echo "$output" | grep project2 | grep 'Exited (0)'
+	run make exec -e CMD='proxyctl stats'
+	echo "$output" | grep project1 | grep "Running: 0"
+	echo "$output" | grep project2 | grep "Running: 0"
 	unset output
 
 	# Check project networks were removed
@@ -230,9 +237,6 @@ _healthcheck_wait ()
 
 	[[ "$PROJECT_DANGLING_TIMEOUT" == "0" ]] &&
 		skip "Cleanup has been disabled via PROJECT_DANGLING_TIMEOUT=0"
-
-	# Kill crontab, so that cron does not interfere with tests
-	make exec -e CMD='crontab -r'
 
 	# Restart projects to reset timing
 	run fin @project1 restart
