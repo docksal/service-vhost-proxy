@@ -21,6 +21,10 @@ PROJECTS_ROOT = $(PWD)/tests/projects_mount
 
 -include tests/env_make
 
+# Make it possible to pass arguments to Makefile from command line
+# https://stackoverflow.com/a/6273809/1826109
+ARGS = $(filter-out $@,$(MAKECMDGOALS))
+
 .EXPORT_ALL_VARIABLES:
 
 .PHONY: build exec test push shell run start stop logs debug clean release
@@ -65,7 +69,7 @@ debug: build start logs-follow
 # Curl command with http2 support via a $(DOCKER) container
 # Usage: make curl -e ARGS='-kI https://docksal.io'
 curl:
-	$(DOCKER) run -t --rm --dns=192.168.64.100 --dns=8.8.8.8 badouralix/curl-http2 ${ARGS}
+	$(DOCKER) run -t --rm --dns=192.168.64.100 --dns=8.8.8.8 badouralix/curl-http2 $(ARGS)
 
 clean:
 	$(DOCKER) rm -vf $(NAME) || true
@@ -73,3 +77,7 @@ clean:
 
 release:
 	@scripts/release.sh
+
+# https://stackoverflow.com/a/6273809/1826109
+%:
+	@:

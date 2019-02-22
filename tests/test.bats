@@ -121,12 +121,12 @@ _healthcheck_wait ()
 	[[ ${SKIP} == 1 ]] && skip
 
 	# Non-existing project
-	run make curl -e ARGS='-sSk -I https://nonsense.docksal'
+	run make curl -- -sSk -I https://nonsense.docksal
 	[[ "$output" =~ "HTTP/2 404" ]]
 	unset output
 
 	# Existing project
-	run make curl -e ARGS='-sSk -I https://project2.docksal'
+	run make curl -- -sSk -I https://project2.docksal
 	[[ "$output" =~ "HTTP/2 200" ]]
 	unset output
 }
