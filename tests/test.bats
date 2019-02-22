@@ -32,8 +32,8 @@ _healthcheck ()
 _healthcheck_wait ()
 {
 	# Wait for cli to become ready by watching its health status
-	local container_name="${NAME}"
-	local delay=5
+	local container_name="${1}"
+	local delay=1
 	local timeout=30
 	local elapsed=0
 
@@ -58,7 +58,7 @@ _healthcheck_wait ()
 @test "${NAME} container is up and using the \"${IMAGE}\" image" {
 	[[ ${SKIP} == 1 ]] && skip
 
-	run _healthcheck_wait
+	run _healthcheck_wait ${NAME}
 	unset output
 
 	# Using "bash -c" here to expand ${DOCKER} (in case it's more that a single word).
@@ -110,6 +110,9 @@ _healthcheck_wait ()
 
 	# Restart project to reset timing
 	fin @project2 project restart
+
+	# Give docker-gen and nginx a little time to reload config
+	sleep ${DELAY}
 
 	run curl -sS -I http://project2.docksal
 	[[ "$output" =~ "HTTP/1.1 200 OK" ]]
@@ -186,12 +189,15 @@ _healthcheck_wait ()
 	# Make sure the project is stopped
 	fin @project2 project stop
 
+	# Give docker-gen and nginx a little time to reload config
+	sleep ${DELAY}
+
 	run curl -sS http://project2.docksal
 	[[ "$output" =~ "Waking up the daemons..." ]]
 	unset output
 
-	# Give docker-gen and nginx a little time to reload config
-	sleep ${CURL_DELAY}
+	# Wait for container to become healthy
+	_healthcheck_wait project2_web_1
 
 	run curl -sS http://project2.docksal
 	[[ "$output" =~ "Project 2" ]]
@@ -202,16 +208,19 @@ _healthcheck_wait ()
 	[[ ${SKIP} == 1 ]] && skip
 
 	# Make sure the project is stopped
-	fin @project2 stop
+	fin @project2 project stop
 
-	run curl -sSk https://project2.docksal
+	# Give docker-gen and nginx a little time to reload config
+	sleep ${DELAY}
+
+	run make curl -- -sSk https://project2.docksal
 	[[ "$output" =~ "Waking up the daemons..." ]]
 	unset output
 
-	# Give docker-gen and nginx a little time to reload config
-	sleep ${CURL_DELAY}
+	# Wait for container to become healthy
+	_healthcheck_wait project2_web_1
 
-	run curl -sSk https://project2.docksal
+	run make curl -- -sSk https://project2.docksal
 	[[ "$output" =~ "Project 2" ]]
 	unset output
 }
@@ -276,6 +285,9 @@ _healthcheck_wait ()
 	# Restart projects to reset timing
 	fin @project3 restart
 
+	# Wait for container to become healthy
+	_healthcheck_wait project3_web_1
+
 	run curl -sS http://project3.docksal
 	[[ "$output" =~ "Hello world: Project 3" ]]
 	unset output
@@ -294,8 +306,8 @@ _healthcheck_wait ()
 		--label=io.docksal.virtual-port='2580' \
 		docksal/nginx
 
-	# Give docker-gen and nginx a little time to reload config
-	sleep ${CURL_DELAY}
+	# Wait for container to become healthy
+	_healthcheck_wait standalone
 
 	run curl -sS http://standalone.docksal
 	[[ "$output" =~ "Hello world: Project 3" ]]
@@ -316,6 +328,9 @@ _healthcheck_wait ()
 	fin @project2 config rm VIRTUAL_HOST_CERT_NAME || true
 	fin @project2 project start
 
+	# Give docker-gen and nginx a little time to reload config
+	sleep ${DELAY}
+
 	# Check fallback cert is used by default
 	run make conf-vhosts
 	[[ "$output" =~ "server_name project2.docksal;" ]]
@@ -325,6 +340,9 @@ _healthcheck_wait ()
 	# Set custom domain for project2
 	fin @project2 config set VIRTUAL_HOST=project2.example.com
 	fin @project2 project start
+
+	# Give docker-gen and nginx a little time to reload config
+	sleep ${DELAY}
 
 	# Check custom cert was picked up
 	run make conf-vhosts
@@ -337,7 +355,7 @@ _healthcheck_wait ()
 	[[ ${SKIP} == 1 ]] && skip
 
 	# Stop all running projects to get a clean output of vhosts configured in nginx
-	fin stop -a
+	fin project stop -a
 
 	# Cleanup and restart the test project (using project2 as it is set to be permanent for testing purposes)
 	fin @project2 config rm VIRTUAL_HOST || true
@@ -347,6 +365,9 @@ _healthcheck_wait ()
 	# Set VIRTUAL_HOST_CERT_NAME for project2
 	fin @project2 config set VIRTUAL_HOST_CERT_NAME=example.com
 	fin @project2 project start
+
+	# Give docker-gen and nginx a little time to reload config
+	sleep ${DELAY}
 
 	# Check server_name is intact while custom cert was picked up
 	run make conf-vhosts
@@ -367,8 +388,8 @@ _healthcheck_wait ()
 		--label=io.docksal.virtual-host='nginx.example.com' \
 		docksal/nginx
 
-	# Give docker-gen and nginx a little time to reload config
-	sleep ${CURL_DELAY}
+	# Wait for container to become healthy
+	_healthcheck_wait standalone
 
 	# Check custom cert was picked up
 	run make conf-vhosts
@@ -393,8 +414,8 @@ _healthcheck_wait ()
 		--label=io.docksal.cert-name='example.com' \
 		docksal/nginx
 
-	# Give docker-gen and nginx a little time to reload config
-	sleep ${CURL_DELAY}
+	# Wait for container to become healthy
+	_healthcheck_wait standalone
 
 	# Check server_name is intact while custom cert was picked up
 	run make conf-vhosts
