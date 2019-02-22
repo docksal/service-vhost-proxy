@@ -32,7 +32,7 @@ start ()
 	local vhost="$1"
 	[[ "$vhost" == "" ]] && log "ERROR: Empty virtual host." && return 1
 
-	log "Stoping docker-gen..."
+	log "Stopping docker-gen..."
 	supervisorctl stop docker-gen
 
 	# Match vhost to the primary project container (exact match only)
