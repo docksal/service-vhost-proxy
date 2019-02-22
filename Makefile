@@ -12,6 +12,10 @@ DOCKSAL_VHOST_PROXY_STATS_LOG = 1
 PROJECT_INACTIVITY_TIMEOUT = 30s
 PROJECT_DANGLING_TIMEOUT = 60s
 
+# Delay before running some curl-based tests.
+# Necessary to give docker-gen/nginx time to reload configuration.
+CURL_DELAY = 2s
+
 # Do not use ?= here to prevent possible data loss on the host system
 PROJECTS_ROOT = $(PWD)/tests/projects_mount
 

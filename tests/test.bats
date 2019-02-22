@@ -180,7 +180,7 @@ _healthcheck_wait ()
 	unset output
 }
 
-@test "Proxy starts an existing stopped project (HTTP)" {
+@test "Proxy starts an existing stopped project [HTTP]" {
 	[[ ${SKIP} == 1 ]] && skip
 
 	# Make sure the project is stopped
@@ -191,14 +191,14 @@ _healthcheck_wait ()
 	unset output
 
 	# Give docker-gen and nginx a little time to reload config
-	sleep 2
+	sleep ${CURL_DELAY}
 
 	run curl -sS http://project2.docksal
 	[[ "$output" =~ "Project 2" ]]
 	unset output
 }
 
-@test "Proxy starts an existing stopped project (HTTPS)" {
+@test "Proxy starts an existing stopped project [HTTPS]" {
 	[[ ${SKIP} == 1 ]] && skip
 
 	# Make sure the project is stopped
@@ -209,7 +209,7 @@ _healthcheck_wait ()
 	unset output
 
 	# Give docker-gen and nginx a little time to reload config
-	sleep 2
+	sleep ${CURL_DELAY}
 
 	run curl -sSk https://project2.docksal
 	[[ "$output" =~ "Project 2" ]]
@@ -270,7 +270,7 @@ _healthcheck_wait ()
 	unset output
 }
 
-@test "Proxy can route request to a non-default port (project)" {
+@test "Proxy can route request to a non-default port [project stack]" {
 	[[ ${SKIP} == 1 ]] && skip
 
 	# Restart projects to reset timing
@@ -281,15 +281,31 @@ _healthcheck_wait ()
 	unset output
 }
 
-@test "Proxy can route request to a non-default port (standalone container)" {
+@test "Proxy can route request to a non-default port [standalone container]" {
 	[[ ${SKIP} == 1 ]] && skip
 
-	run curl -sS http://nodejs.docksal
-	[[ "$output" =~ "Hello World!" ]]
+	# Start a standalone container
+	${DOCKER} rm -vf standalone &>/dev/null || true
+	${DOCKER} run --name standalone -d \
+		--expose 2580 \
+		-e NGINX_VHOST_PRESET=html \
+		-v $(pwd)/tests/projects/project3:/var/www \
+		--label=io.docksal.virtual-host='standalone.docksal' \
+		--label=io.docksal.virtual-port='2580' \
+		docksal/nginx
+
+	# Give docker-gen and nginx a little time to reload config
+	sleep ${CURL_DELAY}
+
+	run curl -sS http://standalone.docksal
+	[[ "$output" =~ "Hello world: Project 3" ]]
 	unset output
+
+	# Cleanup
+	${DOCKER} rm -vf standalone &>/dev/null || true
 }
 
-@test "Certs: proxy picks up custom cert based on hostname [stack]" {
+@test "Certs: proxy picks up custom cert based on hostname [project stack]" {
 	[[ ${SKIP} == 1 ]] && skip
 
 	# Stop all running projects to get a clean output of vhosts configured in nginx
@@ -317,7 +333,7 @@ _healthcheck_wait ()
 	unset output
 }
 
-@test "Certs: proxy picks up custom cert based on cert name override [stack]" {
+@test "Certs: proxy picks up custom cert based on cert name override [project stack]" {
 	[[ ${SKIP} == 1 ]] && skip
 
 	# Stop all running projects to get a clean output of vhosts configured in nginx
@@ -339,20 +355,20 @@ _healthcheck_wait ()
 	unset output
 }
 
-@test "Certs: proxy picks up custom cert based on hostname [standalone]" {
+@test "Certs: proxy picks up custom cert based on hostname [standalone container]" {
 	[[ ${SKIP} == 1 ]] && skip
 
 	# Stop all running projects to get a clean output of vhosts configured in nginx
 	fin stop -a
 
 	# Start a standalone container
-	${DOCKER} rm -vf nginx || true
-	${DOCKER} run --name nginx -d \
+	${DOCKER} rm -vf standalone &>/dev/null || true
+	${DOCKER} run --name standalone -d \
 		--label=io.docksal.virtual-host='nginx.example.com' \
-		nginx:alpine
+		docksal/nginx
 
 	# Give docker-gen and nginx a little time to reload config
-	sleep 2
+	sleep ${CURL_DELAY}
 
 	# Check custom cert was picked up
 	run make conf-vhosts
@@ -361,25 +377,24 @@ _healthcheck_wait ()
 	unset output
 
 	# Cleanup
-	${DOCKER} rm -vf nginx || true
+	${DOCKER} rm -vf standalone &>/dev/null || true
 }
 
-@test "Certs: proxy picks up custom cert based on cert name override [standalone]" {
+@test "Certs: proxy picks up custom cert based on cert name override [standalone container]" {
 	[[ ${SKIP} == 1 ]] && skip
 
 	# Stop all running projects to get a clean output of vhosts configured in nginx
 	fin stop -a
-	${DOCKER} rm -vf nginx || true
 
 	# Start a standalone container
-	${DOCKER} rm -vf nginx || true
-	${DOCKER} run --name nginx -d \
+	${DOCKER} rm -vf standalone &>/dev/null || true
+	${DOCKER} run --name standalone -d \
 		--label=io.docksal.virtual-host='apache.example.com' \
 		--label=io.docksal.cert-name='example.com' \
-		nginx:alpine
+		docksal/nginx
 
 	# Give docker-gen and nginx a little time to reload config
-	sleep 2
+	sleep ${CURL_DELAY}
 
 	# Check server_name is intact while custom cert was picked up
 	run make conf-vhosts
@@ -388,5 +403,5 @@ _healthcheck_wait ()
 	unset output
 
 	# Cleanup
-	${DOCKER} rm -vf nginx || true
+	${DOCKER} rm -vf standalone &>/dev/null || true
 }
