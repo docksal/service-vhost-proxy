@@ -47,7 +47,10 @@ conf-vhosts:
 
 # This is the only place where fin is used/necessary
 start: clean
+	# Create PROJECTS_ROOT directory used in cleanup tests
 	mkdir -p $(PROJECTS_ROOT)
+	# Copy custom certs used in cert tets
+	cp -R tests/certs ~/.docksal
 	IMAGE_VHOST_PROXY=$(REPO):$(TAG) fin system reset vhost-proxy
 
 exec:
@@ -79,6 +82,7 @@ clean:
 	$(DOCKER) rm -vf $(NAME) &>/dev/null || true
 	$(DOCKER) rm -vf standalone &>/dev/null || true
 	rm -rf $(PROJECTS_ROOT)
+	rm -f ~/.docksal/certs/example.com.*
 
 release:
 	@scripts/release.sh

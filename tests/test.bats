@@ -328,8 +328,8 @@ _healthcheck_wait ()
 	fin stop -a
 
 	# Cleanup and restart the test project (using project2 as it is set to be permanent for testing purposes)
-	fin @project2 config rm VIRTUAL_HOST || true
-	fin @project2 config rm VIRTUAL_HOST_CERT_NAME || true
+	fin @project2 config rm VIRTUAL_HOST &>/dev/null || true
+	fin @project2 config rm VIRTUAL_HOST_CERT_NAME &>/dev/null || true
 	fin @project2 project start
 
 	# Give docker-gen and nginx a little time to reload config
@@ -362,8 +362,8 @@ _healthcheck_wait ()
 	fin project stop -a
 
 	# Cleanup and restart the test project (using project2 as it is set to be permanent for testing purposes)
-	fin @project2 config rm VIRTUAL_HOST || true
-	fin @project2 config rm VIRTUAL_HOST_CERT_NAME || true
+	fin @project2 config rm VIRTUAL_HOST &>/dev/null || true
+	fin @project2 config rm VIRTUAL_HOST_CERT_NAME &>/dev/null || true
 	fin @project2 project start
 
 	# Set VIRTUAL_HOST_CERT_NAME for project2
