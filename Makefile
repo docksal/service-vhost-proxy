@@ -45,7 +45,7 @@ conf-vhosts:
 	make exec -e CMD='cat /etc/nginx/conf.d/vhosts.conf'
 
 # This is the only place where fin is used/necessary
-start:
+start: clean
 	mkdir -p $(PROJECTS_ROOT)
 	IMAGE_VHOST_PROXY=$(REPO):$(TAG) fin system reset vhost-proxy
 
@@ -72,7 +72,11 @@ curl:
 	$(DOCKER) run -t --rm --dns=192.168.64.100 --dns=8.8.8.8 badouralix/curl-http2 $(ARGS)
 
 clean:
-	$(DOCKER) rm -vf $(NAME) || true
+	fin @project1 rm -f &>/dev/null || true
+	fin @project2 rm -f &>/dev/null || true
+	fin @project3 rm -f &>/dev/null || true
+	$(DOCKER) rm -vf $(NAME) &>/dev/null || true
+	$(DOCKER) rm -vf standalone &>/dev/null || true
 	rm -rf $(PROJECTS_ROOT)
 
 release:
