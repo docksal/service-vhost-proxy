@@ -200,7 +200,7 @@ _healthcheck_wait ()
 	sleep ${DELAY}
 
 	run curl -sS http://project2.docksal
-	[[ "$output" =~ "Waking up the daemons..." ]]
+	[[ "$output" =~ "Loading project..." ]]
 	unset output
 
 	# Wait for container to become healthy
@@ -221,7 +221,7 @@ _healthcheck_wait ()
 	sleep ${DELAY}
 
 	run make curl -- -sSk https://project2.docksal
-	[[ "$output" =~ "Waking up the daemons..." ]]
+	[[ "$output" =~ "Loading project..." ]]
 	unset output
 
 	# Wait for container to become healthy
