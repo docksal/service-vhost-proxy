@@ -5,6 +5,10 @@
 DEBUG_LOG=${DEBUG_LOG:-0}
 STATS_LOG=${STATS_LOG:-0}
 
+# /usr/local/bin is not by default in PATH for nginx user (running this script).
+# Since we install docker binary there, we need it included in PATH.
+export PATH=/usr/local/bin:$PATH
+
 ### Helper functions ###
 
 # Checks if there was any recent container activity (entries in the container logs)
@@ -22,18 +26,15 @@ is_container_dangling ()
 
 ### Functions ###
 
-# Start containers for a project identified with a virtual host
+# Lookup containers for a project identified with a virtual host
 # @param $1 virtual host name
-start ()
+lookup ()
 {
 	# Set logging prefix for the function and trigger a log entry
-	export LOG_PREFIX='[start]' && log
+	export LOG_PREFIX='[lookup]' && log
 	
 	local vhost="$1"
 	[[ "$vhost" == "" ]] && log "ERROR: Empty virtual host." && return 1
-
-	log "Stopping docker-gen..."
-	supervisorctl stop docker-gen
 
 	# Match vhost to the primary project container (exact match only)
 	local project_name
@@ -83,18 +84,37 @@ start ()
 	# No match if project_name is empty here.
 	if [[ "$project_name" == "" ]]; then
 		if [[ "$container_id" == "" ]]; then
-			log "ERROR: No matching projects or containers found for virtual host ${vhost}." \
-				&& log "Starting docker-gen..." \
-				&& supervisorctl start docker-gen \
-				&& return 1
+			log "ERROR: No matching projects or containers found for virtual host '${vhost}'."
+			return 1
 		else
-			log "Starting single container $container_id..." \
-				&& docker start "$container_id" \
-				&& log "Starting docker-gen..." \
-				&& supervisorctl start docker-gen \
-				&& return 0
+			log "Found a standalone container '$container_id'..."
+			echo "container ${container_id}"
 		fi
 	else
+		log "Found a project stack '$project_name'..."
+		echo "project ${project_name}"
+	fi
+}
+
+start ()
+{
+	# Set logging prefix for the function and trigger a log entry
+	export LOG_PREFIX='[start]' && log
+
+	local type=${1}
+	local id=${2}
+
+	[[ "$type" == "" ]] && log "ERROR: Empty type." && return 1
+	[[ "$id" == "" ]] && log "ERROR: Empty id." && return 1
+
+	if [[ "$type" == "container" ]]; then
+		local container_id=${id}
+		log "Starting a standalone container '$container_id'..."
+		docker start "$container_id"
+	elif [[ "$type" == "project" ]]; then
+		local project_name=${id}
+		log "Starting project stack for '${project_name}'..."
+
 		# Connecting/re-connecting vhost-proxy to the project network
 		local network="${project_name}_default"
 		# Making sure the network exists
@@ -102,7 +122,7 @@ start ()
 		# Reconnect vhost-proxy to the project network (in case vhost-proxy has been recently reset)
 		docker network connect "$network" docksal-vhost-proxy >/dev/null 2>&1
 		if [[ $? == 0 ]]; then
-			log "Connected proxy to network: ${network}."
+			log "Connected proxy to network '${network}'."
 		fi
 
 		# Reconnect project containers to the re-created network
@@ -117,6 +137,9 @@ start ()
 			docker network connect --alias "$service_name" "$network" "$container_id" >/dev/null
 		done <<< "$project_containers"
 
+		log "Stopping docker-gen..."
+		supervisorctl stop docker-gen
+
 		log "Starting containers for $project_name..."
 		# Dirty hack to avoid using docker-compose and still be able to launch containers with dependencies up to 3 levels deep.
 		for i in {1..3}; do
@@ -126,6 +149,9 @@ start ()
 
 		log "Starting docker-gen..."
 		supervisorctl start docker-gen
+	else
+		log "ERROR: Invalid type."
+		return 1
 	fi
 }
 
@@ -240,11 +266,11 @@ cleanup ()
 		rm -rf "$mounted_project_root"
 	done <<< "$projects"
 
-	echo "Removing dangling images..."
+	log "Removing dangling images..."
 	docker image prune -f
-	echo "Removing dangling volumes..."
+	log "Removing dangling volumes..."
 	docker volume prune -f
-	echo "Removing dangling networks..."
+	log "Removing dangling networks..."
 	docker network prune -f
 }
 
@@ -266,7 +292,8 @@ notify ()
 # @param $@ Log message
 log ()
 {
-	echo "$(date +"%F %H:%M:%S") [proxyctl] ${LOG_PREFIX} $@"
+	# Writing log messages to stderr (>&2) to be able to return text values in functions on stdout (e.g. "lookup")
+	echo "$(date +"%F %H:%M:%S") [proxyctl] ${LOG_PREFIX} $@" >&2
 }
 
 # Print stats for projects
@@ -340,6 +367,10 @@ stats ()
 
 # Parse other parameters
 case "$1" in
+	lookup)
+		shift
+		lookup "$@"
+		;;
 	start)
 		shift
 		start "$@"
@@ -363,5 +394,5 @@ case "$1" in
 		stats
 		;;
 	*)
-		echo "Usage: $0 start <vhost>|stop|cron|notify|networks|cleanup|stats"
+		echo "Usage: $0 lookup <vhost>|start|stop|cron|notify|networks|cleanup|stats"
 esac
