@@ -70,7 +70,7 @@ COPY conf/sudoers /etc/sudoers
 COPY conf/supervisord.conf /etc/supervisord.conf
 COPY conf/crontab /var/spool/cron/crontabs/root
 COPY bin /usr/local/bin
-COPY www /var/www/proxy
+COPY www /var/www
 COPY healthcheck.sh /opt/healthcheck.sh
 
 # Fix permissions
