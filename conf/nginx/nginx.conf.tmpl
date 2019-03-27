@@ -43,6 +43,9 @@ http {
 		ssl_prefer_server_ciphers	on;
 
 		location / {
+			# See https://github.com/openresty/lua-nginx-module#ngxeof
+			proxy_ignore_client_abort on;
+
 			rewrite_by_lua_file conf/lua/proxyctl.lua;
 		}
 	}

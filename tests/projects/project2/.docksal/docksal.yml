@@ -1,0 +1,12 @@
+version: "2.1"
+
+services:
+  web:
+    extends:
+      file: ${HOME}/.docksal/stacks/services.yml
+      service: nginx
+    environment:
+    - NGINX_VHOST_PRESET=html
+    labels:
+    # Mark this stack as permanent, so that it's not removed during cleanup
+    - io.docksal.permanent=true
