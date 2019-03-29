@@ -23,10 +23,10 @@ function response(status)
     -- While direct file operations may be inefficient, they won't happen often, so this should be fine.
     -- An alternative option would be to use lua-resty-http to replace ngx.location.capture for subrequests.
     local response_body
-    if (status == ngx.HTTP_OK) then
-        response_body = read_file('/var/www/proxy/loading.html')
+    if (status == ngx.HTTP_ACCEPTED) then
+        response_body = read_file('/var/www/202.html')
     else
-        response_body = read_file('/var/www/proxy/not-found.html')
+        response_body = read_file('/var/www/404.html')
     end
 
     ngx.header["Content-Type"] = 'text/html'
@@ -37,7 +37,7 @@ function response(status)
     dpr("Unlocking " .. ngx.var.host)
     ngx.shared.hosts:delete(ngx.var.host)
 
-    ngx.exit(status)
+    return ngx.exit(status)
 end
 
 -- Get the host lock timestamp
@@ -62,12 +62,12 @@ if (lock_timestamp == 0) then
 
     -- Lanch project start script
     -- os.execute returs multiple values starting with Lua 5.2
-    local status, exit, exit_code = os.execute("PATH=/usr/local/bin:$PATH sudo proxyctl start \"" .. ngx.var.host .. "\"")
+    local status, exit, exit_code = os.execute("sudo /usr/local/bin/proxyctl start $(sudo /usr/local/bin/proxyctl lookup \"" .. ngx.var.host .. "\")")
 
     if (exit_code == 0) then
         -- If all went well, reload the page
         dpr("Container start succeeded")
-        response(ngx.HTTP_OK)
+        response(ngx.HTTP_ACCEPTED)
     else
         -- If proxyctl start failed (non-existing environment or something went wrong), return 404
         dpr("Container start failed")

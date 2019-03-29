@@ -97,6 +97,17 @@ docker run -d --name docksal-vhost-proxy --label "io.docksal.group=system" --res
     docksal/vhost-proxy
 ```
 
+`io.docksal.permanent=true`
+
+It is possible to protect certain projects/containers from being automatically removed after `PROJECT_DANGLING_TIMEOUT`.
+
+Projects/containers with the `io.docksal.permanent=true` label are considered permanent are skipped during the cleanup.
+When running the default Docksal stack, this label can be set with `SANDBOX_PERMANENT=true` in `docksal.env` (or an 
+environment specific equivalent, e.g. `docksal-ci.env`).
+
+Note: permanent projects will still be put into hibernation according to `PROJECT_INACTIVITY_TIMEOUT`.
+
+
 ## Default and custom certs for HTTPS
 
 The default server cert is a self-signed cert for `*.docksal`. It allows a HTTPS connection to be established, but will 

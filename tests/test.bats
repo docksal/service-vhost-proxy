@@ -1,7 +1,7 @@
 #!/usr/bin/env bats
 
 # Debugging
-teardown() {
+teardown () {
 	echo
 	echo "Output:"
 	echo "================================================================"
@@ -14,14 +14,14 @@ teardown() {
 _healthcheck ()
 {
 	local health_status
-	health_status=$(docker inspect --format='{{json .State.Health.Status}}' "$1" 2>/dev/null)
+	health_status=$(${DOCKER} inspect --format='{{json .State.Health.Status}}' "$1" 2>/dev/null)
 
 	# Wait for 5s then exit with 0 if a container does not have a health status property
 	# Necessary for backward compatibility with images that do not support health checks
 	if [[ $? != 0 ]]; then
-	echo "Waiting 10s for container to start..."
-	sleep 10
-	return 0
+		echo "Waiting 10s for container to start..."
+		sleep 10
+		return 0
 	fi
 
 	# If it does, check the status
@@ -29,28 +29,24 @@ _healthcheck ()
 }
 
 # Waits for containers to become healthy
-# For reasoning why we are not using  `depends_on` `condition` see here:
-# https://github.com/docksal/docksal/issues/225#issuecomment-306604063
 _healthcheck_wait ()
 {
 	# Wait for cli to become ready by watching its health status
-	local container_name="${NAME}"
-	local delay=5
+	local container_name="${1}"
+	local delay=1
 	local timeout=30
 	local elapsed=0
 
 	until _healthcheck "$container_name"; do
-	echo "Waiting for $container_name to become ready..."
-	sleep "$delay";
+		echo "Waiting for $container_name to become ready..."
+		sleep "$delay";
 
-	# Give the container 30s to become ready
-	elapsed=$((elapsed + delay))
-	if ((elapsed > timeout)); then
-		echo-error "$container_name heathcheck failed" \
-			"Container did not enter a healthy state within the expected amount of time." \
-			"Try ${yellow}fin restart${NC}"
-		exit 1
-	fi
+		# Give the container 30s to become ready
+		elapsed=$((elapsed + delay))
+		if ((elapsed > timeout)); then
+			echo "$container_name heathcheck failed"
+			exit 1
+		fi
 	done
 
 	return 0
@@ -61,9 +57,13 @@ _healthcheck_wait ()
 
 @test "${NAME} container is up and using the \"${IMAGE}\" image" {
 	[[ ${SKIP} == 1 ]] && skip
-	_healthcheck_wait
 
-	run docker ps --filter "name=${NAME}" --format "{{ .Image }}"
+	run _healthcheck_wait ${NAME}
+	unset output
+
+	# Using "bash -c" here to expand ${DOCKER} (in case it's more that a single word).
+	# Without bats run returns "command not found"
+	run bash -c "${DOCKER} ps --filter 'name=${NAME}' --format '{{ .Image }}'"
 	[[ "$output" =~ "${IMAGE}" ]]
 	unset output
 }
@@ -74,10 +74,16 @@ _healthcheck_wait ()
 	run make exec -e CMD='ls -la /projects'
 	[[ "$output" =~ "project1" ]]
 	[[ "$output" =~ "project2" ]]
+	[[ "$output" =~ "project3" ]]
 }
 
 @test "Cron is working" {
 	[[ ${SKIP} == 1 ]] && skip
+
+	# Start cron first (disabled during tests by default)
+	run make exec -e CMD='supervisorctl start crond'
+	[[ "$output" =~ "crond: started" ]]
+	unset output
 
 	# 'proxyctl cron' should be invoked every minute
 	sleep 60s
@@ -86,18 +92,16 @@ _healthcheck_wait ()
 	echo "$output" | grep "[proxyctl] [cron]"
 	unset output
 
-	# Kill crontab once this test completes, so that cron does not interfere with the rest of the tests
-	make exec -e CMD='crontab -r'
+	# Stop cron after this test so it does not interfere with other tests.
+	run make exec -e CMD='supervisorctl stop crond'
+	[[ "$output" =~ "crond: stopped" ]]
+	unset output
 }
 
-@test "Test projects are up and running" {
+@test "Test project stacks exist" {
 	[[ ${SKIP} == 1 ]] && skip
 
-	fin @project1 restart
-	fin @project2 restart
-	fin @project3 restart
-
-	run fin pl
+	run fin pl -a
 	[[ "$output" =~ "project1" ]]
 	[[ "$output" =~ "project2" ]]
 	[[ "$output" =~ "project3" ]]
@@ -106,7 +110,7 @@ _healthcheck_wait ()
 @test "Proxy returns 404 for a non-existing virtual-host" {
 	[[ ${SKIP} == 1 ]] && skip
 
-	run curl -I http://nonsense.docksal
+	run curl -sS -I http://nonsense.docksal
 	[[ "$output" =~ "HTTP/1.1 404 Not Found" ]]
 	unset output
 }
@@ -114,30 +118,28 @@ _healthcheck_wait ()
 @test "Proxy returns 200 for an existing virtual-host" {
 	[[ ${SKIP} == 1 ]] && skip
 
-	run curl -I http://project1.docksal
-	[[ "$output" =~ "HTTP/1.1 200 OK" ]]
-	unset output
+	# Restart project to reset timing
+	fin @project2 project restart
 
-	run curl -I http://project2.docksal
+	# Give docker-gen and nginx a little time to reload config
+	sleep ${DELAY}
+
+	run curl -sS -I http://project2.docksal
 	[[ "$output" =~ "HTTP/1.1 200 OK" ]]
 	unset output
 }
 
-# We have to use a different version of curl here built with http2 support
+# We have to use a different version of curl here with built-in http2 support
 @test "Proxy uses HTTP/2 for HTTPS connections" {
 	[[ ${SKIP} == 1 ]] && skip
 
 	# Non-existing project
-	run make curl -e ARGS='-kI https://nonsense.docksal'
+	run make curl -- -sSk -I https://nonsense.docksal
 	[[ "$output" =~ "HTTP/2 404" ]]
 	unset output
 
-	# Existing projects
-	run make curl -e ARGS='-kI https://project1.docksal'
-	[[ "$output" =~ "HTTP/2 200" ]]
-	unset output
-
-	run make curl -e ARGS='-kI https://project2.docksal'
+	# Existing project
+	run make curl -- -sSk -I https://project2.docksal
 	[[ "$output" =~ "HTTP/2 200" ]]
 	unset output
 }
@@ -149,59 +151,84 @@ _healthcheck_wait ()
 		skip "Stopping has been disabled via PROJECT_INACTIVITY_TIMEOUT=0"
 
 	# Restart projects to reset timing
-	fin @project1 restart
-	fin @project2 restart
+	fin @project1 project restart
+	fin @project2 project restart
+
+	# Confirm projects are considered active here
+	run make exec -e CMD='proxyctl stats'
+	echo "$output" | grep project1 | grep "Active: 1"
+	echo "$output" | grep project2 | grep "Active: 1"
+	unset output
 
 	# Wait
-	date
 	sleep ${PROJECT_INACTIVITY_TIMEOUT}
-	date
 
-	make exec -e CMD='proxyctl stats'
+	# Confirm projects are considered inactive here
+	run make exec -e CMD='proxyctl stats'
+	echo "$output" | grep project1 | grep "Active: 0"
+	echo "$output" | grep project2 | grep "Active: 0"
+	unset output
+
 	# Trigger proxyctl stop manually to skip the cron job wait.
 	# Note: cron job may still have already happened here and stopped the inactive projects
-	make exec -e CMD='proxyctl stop'
+	run make exec -e CMD='proxyctl stop'
+	[[ "$output" =~ "Stopping inactive project: project1" ]]
+	[[ "$output" =~ "Stopping inactive project: project2" ]]
+	unset output
 
 	# Check projects were stopped, but not removed
-	run fin pl -a
-	echo "$output" | grep project1 | grep 'Exited (0)'
-	echo "$output" | grep project2 | grep 'Exited (0)'
+	run make exec -e CMD='proxyctl stats'
+	echo "$output" | grep project1 | grep "Running: 0"
+	echo "$output" | grep project2 | grep "Running: 0"
 	unset output
 
 	# Check project networks were removed
-	run docker network ls
-	echo "$output" | grep -v project1
-	echo "$output" | grep -v project2
+	run bash -c "${DOCKER} network ls"
+	[[ ${status} == 0 ]]
+	[[ ! "$output" =~ "project1" ]]
+	[[ ! "$output" =~ "project2" ]]
 	unset output
 }
 
-@test "Proxy starts an existing stopped project (HTTP)" {
+@test "Proxy starts an existing stopped project [HTTP]" {
 	[[ ${SKIP} == 1 ]] && skip
 
 	# Make sure the project is stopped
-	fin @project1 stop
+	fin @project2 project stop
 
-	run curl http://project1.docksal
-	[[ "$output" =~ "Waking up the daemons..." ]]
+	# Give docker-gen and nginx a little time to reload config
+	sleep ${DELAY}
+
+	run curl -sS http://project2.docksal
+	[[ "$output" =~ "Loading project..." ]]
 	unset output
 
-	run curl http://project1.docksal
-	[[ "$output" =~ "Project 1" ]]
+	# Wait for container to become healthy
+	_healthcheck_wait project2_web_1
+
+	run curl -sS http://project2.docksal
+	[[ "$output" =~ "Project 2" ]]
 	unset output
 }
 
-@test "Proxy starts an existing stopped project (HTTPS)" {
+@test "Proxy starts an existing stopped project [HTTPS]" {
 	[[ ${SKIP} == 1 ]] && skip
 
 	# Make sure the project is stopped
-	fin @project1 stop
+	fin @project2 project stop
 
-	run curl -k https://project1.docksal
-	[[ "$output" =~ "Waking up the daemons..." ]]
+	# Give docker-gen and nginx a little time to reload config
+	sleep ${DELAY}
+
+	run make curl -- -sSk https://project2.docksal
+	[[ "$output" =~ "Loading project..." ]]
 	unset output
 
-	run curl -k https://project1.docksal
-	[[ "$output" =~ "Project 1" ]]
+	# Wait for container to become healthy
+	_healthcheck_wait project2_web_1
+
+	run make curl -- -sSk https://project2.docksal
+	[[ "$output" =~ "Project 2" ]]
 	unset output
 }
 
@@ -212,73 +239,101 @@ _healthcheck_wait ()
 		skip "Cleanup has been disabled via PROJECT_DANGLING_TIMEOUT=0"
 
 	# Restart projects to reset timing
-	fin @project1 restart
-	fin @project2 restart
+	run fin @project1 restart
+	run fin @project2 restart
+	unset output
 
 	# Wait
-	date
 	sleep ${PROJECT_DANGLING_TIMEOUT}
-	date
 
-	make exec -e CMD='proxyctl stats'
-	# Trigger proxyctl cleanup manually to skip the cron job wait.
-	make exec -e CMD='proxyctl cleanup'
+	# Confirm projects are considered dangling here.
+	run make exec -e CMD='proxyctl stats'
+	echo "$output" | grep project1 | grep "Dangling: 1"
+	echo "$output" | grep project2 | grep "Dangling: 1"
+	unset output
 
-	# Check project1 containers were removed
-	run docker ps -a -q --filter "label=com.docker.compose.project=project1"
+	# Trigger proxyctl cleanup manually, since cron is disabled in this test (see above).
+	run make exec -e CMD='proxyctl cleanup'
+	[[ "$output" =~ "Removing dangling project: project1" ]]
+	[[ ! "$output" =~ "Removing dangling project: project2" ]]
+	unset output
+
+	# Check that all project1 containers were removed
+	run bash -c "${DOCKER} ps -a -q --filter 'label=com.docker.compose.project=project1'"
 	[[ "$output" == "" ]]
 	unset output
+
 	# Check project1 network was removed
-	run docker network ls
+	run bash -c "${DOCKER} network ls"
 	echo "$output" | grep -v project1
 	unset output
+
 	# Check project1 folder was removed
-	make exec -e CMD='ls -la /projects'
+	run make exec -e CMD='ls -la /projects'
 	echo "$output" | grep -v project1
 
 	# Check that project2 still exist
 	run fin pl -a
 	echo "$output" | grep project2
 	unset output
+	
 	# Check that project2 folder was NOT removed
 	run make exec -e CMD='ls -la /projects'
 	echo "$output" | grep project2
 	unset output
 }
 
-@test "Proxy can route request to a non-default port (project)" {
+@test "Proxy can route request to a non-default port [project stack]" {
 	[[ ${SKIP} == 1 ]] && skip
 
 	# Restart projects to reset timing
 	fin @project3 restart
 
-	# TODO: WTF is it stopped here?
-	make exec -e CMD='proxyctl stats'
-	curl -I http://project3.docksal
+	# Wait for container to become healthy
+	_healthcheck_wait project3_web_1
 
-	run curl http://project3.docksal
-	[[ "$output" =~ "Hello World!" ]]
+	run curl -sS http://project3.docksal
+	[[ "$output" =~ "Hello world: Project 3" ]]
 	unset output
 }
 
-@test "Proxy can route request to a non-default port (standalone container)" {
+@test "Proxy can route request to a non-default port [standalone container]" {
 	[[ ${SKIP} == 1 ]] && skip
 
-	run curl -k http://nodejs.docksal
-	[[ "$output" =~ "Hello World!" ]]
+	# Start a standalone container
+	${DOCKER} rm -vf standalone &>/dev/null || true
+	${DOCKER} run --name standalone -d \
+		--expose 2580 \
+		-e NGINX_VHOST_PRESET=html \
+		-v $(pwd)/tests/projects/project3:/var/www \
+		--label=io.docksal.virtual-host='standalone.docksal' \
+		--label=io.docksal.virtual-port='2580' \
+		docksal/nginx
+
+	# Wait for container to become healthy
+	_healthcheck_wait standalone
+
+	run curl -sS http://standalone.docksal
+	[[ "$output" =~ "Hello world: Project 3" ]]
 	unset output
+
+	# Cleanup
+	${DOCKER} rm -vf standalone &>/dev/null || true
 }
 
-@test "Certs: proxy picks up custom cert based on hostname [stack]" {
+@test "Certs: proxy picks up custom cert based on hostname [project stack]" {
 	[[ ${SKIP} == 1 ]] && skip
 
 	# Stop all running projects to get a clean output of vhosts configured in nginx
 	fin stop -a
 
 	# Cleanup and restart the test project (using project2 as it is set to be permanent for testing purposes)
-	fin @project2 config rm VIRTUAL_HOST || true
-	fin @project2 config rm VIRTUAL_HOST_CERT_NAME || true
-	fin @project2 up
+	fin @project2 config rm VIRTUAL_HOST &>/dev/null || true
+	fin @project2 config rm VIRTUAL_HOST_CERT_NAME &>/dev/null || true
+	fin @project2 project start
+
+	# Give docker-gen and nginx a little time to reload config
+	sleep ${DELAY}
 
 	# Check fallback cert is used by default
 	run make conf-vhosts
@@ -288,7 +343,10 @@ _healthcheck_wait ()
 
 	# Set custom domain for project2
 	fin @project2 config set VIRTUAL_HOST=project2.example.com
-	fin @project2 up
+	fin @project2 project start
+
+	# Give docker-gen and nginx a little time to reload config
+	sleep ${DELAY}
 
 	# Check custom cert was picked up
 	run make conf-vhosts
@@ -297,20 +355,23 @@ _healthcheck_wait ()
 	unset output
 }
 
-@test "Certs: proxy picks up custom cert based on cert name override [stack]" {
+@test "Certs: proxy picks up custom cert based on cert name override [project stack]" {
 	[[ ${SKIP} == 1 ]] && skip
 
 	# Stop all running projects to get a clean output of vhosts configured in nginx
-	fin stop -a
+	fin project stop -a
 
 	# Cleanup and restart the test project (using project2 as it is set to be permanent for testing purposes)
-	fin @project2 config rm VIRTUAL_HOST || true
-	fin @project2 config rm VIRTUAL_HOST_CERT_NAME || true
-	fin @project2 up
+	fin @project2 config rm VIRTUAL_HOST &>/dev/null || true
+	fin @project2 config rm VIRTUAL_HOST_CERT_NAME &>/dev/null || true
+	fin @project2 project start
 
 	# Set VIRTUAL_HOST_CERT_NAME for project2
 	fin @project2 config set VIRTUAL_HOST_CERT_NAME=example.com
-	fin @project2 up
+	fin @project2 project start
+
+	# Give docker-gen and nginx a little time to reload config
+	sleep ${DELAY}
 
 	# Check server_name is intact while custom cert was picked up
 	run make conf-vhosts
@@ -319,18 +380,20 @@ _healthcheck_wait ()
 	unset output
 }
 
-@test "Certs: proxy picks up custom cert based on hostname [standalone]" {
-	#[[ ${SKIP} == 1 ]] && skip
+@test "Certs: proxy picks up custom cert based on hostname [standalone container]" {
+	[[ ${SKIP} == 1 ]] && skip
 
 	# Stop all running projects to get a clean output of vhosts configured in nginx
 	fin stop -a
 
 	# Start a standalone container
-	docker rm -vf nginx || true
-	docker run --name nginx -d \
+	${DOCKER} rm -vf standalone &>/dev/null || true
+	${DOCKER} run --name standalone -d \
 		--label=io.docksal.virtual-host='nginx.example.com' \
-		nginx:alpine
-	sleep 1
+		docksal/nginx
+
+	# Wait for container to become healthy
+	_healthcheck_wait standalone
 
 	# Check custom cert was picked up
 	run make conf-vhosts
@@ -339,23 +402,24 @@ _healthcheck_wait ()
 	unset output
 
 	# Cleanup
-	docker rm -vf nginx || true
+	${DOCKER} rm -vf standalone &>/dev/null || true
 }
 
-@test "Certs: proxy picks up custom cert based on cert name override [standalone]" {
-	#[[ ${SKIP} == 1 ]] && skip
+@test "Certs: proxy picks up custom cert based on cert name override [standalone container]" {
+	[[ ${SKIP} == 1 ]] && skip
 
 	# Stop all running projects to get a clean output of vhosts configured in nginx
 	fin stop -a
-	docker rm -vf nginx || true
 
 	# Start a standalone container
-	docker rm -vf nginx || true
-	docker run --name nginx -d \
+	${DOCKER} rm -vf standalone &>/dev/null || true
+	${DOCKER} run --name standalone -d \
 		--label=io.docksal.virtual-host='apache.example.com' \
 		--label=io.docksal.cert-name='example.com' \
-		nginx:alpine
-	sleep 1
+		docksal/nginx
+
+	# Wait for container to become healthy
+	_healthcheck_wait standalone
 
 	# Check server_name is intact while custom cert was picked up
 	run make conf-vhosts
@@ -364,5 +428,5 @@ _healthcheck_wait ()
 	unset output
 
 	# Cleanup
-	docker rm -vf nginx || true
+	${DOCKER} rm -vf standalone &>/dev/null || true
 }
