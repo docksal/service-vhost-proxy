@@ -1,3 +1,4 @@
+# Allow using a different docker binary
 DOCKER ?= docker
 
 VERSION ?= dev
