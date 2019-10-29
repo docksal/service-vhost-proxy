@@ -264,6 +264,8 @@ cleanup ()
 		# Remove project directory
 		log "Removing directory: $mounted_project_root..."
 		rm -rf "$mounted_project_root"
+		# Remove project volumes. docker volume prune -f does not remove project_root.
+		docker volume ls -q --filter "label=com.docker.compose.project=${project_name}" | xargs docker volume rm -f
 	done <<< "$projects"
 
 	log "Removing dangling images..."
