@@ -13,6 +13,9 @@ events {
 }
 
 http {
+	# Set lua packages path to /etc/nginx/lua/
+	lua_package_path '/etc/nginx/lua/?.lua;';
+
 	server_names_hash_bucket_size	128;
 	include							/etc/nginx/mime.types;
 	default_type					application/octet-stream;
