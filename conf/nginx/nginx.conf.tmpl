@@ -32,7 +32,8 @@ http {
 	access_log off;
 	{{ end }}
 
-	lua_shared_dict hosts 1m;
+	lua_shared_dict hosts   1m;
+	lua_shared_dict session 1m;
 	# For Lua debugging only
 	#lua_code_cache off;
 

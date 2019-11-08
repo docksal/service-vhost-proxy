@@ -89,6 +89,7 @@ local function on_auth(email, token, expires)
     check_domain(email, false)
   end
 
+
   if set_user then
     if email_as_user then
       ngx.var.ngo_user = email
