@@ -18,6 +18,7 @@ http {
 
 	resolver 8.8.8.8 ipv6=off;
 
+	# required for checking server certificates (google, microsoft, etc), to which the lua code initiates connections
 	lua_ssl_trusted_certificate /etc/ssl/certs/ca-certificates.crt;
 	lua_ssl_verify_depth        5;
 
@@ -32,7 +33,7 @@ http {
 	access_log off;
 	{{ end }}
 
-	lua_shared_dict hosts   1m;
+	lua_shared_dict hosts 1m;
 	lua_shared_dict session 1m;
 	# For Lua debugging only
 	#lua_code_cache off;
