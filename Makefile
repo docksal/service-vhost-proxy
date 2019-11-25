@@ -2,7 +2,7 @@
 DOCKER ?= docker
 
 VERSION ?= dev
-TAG ?= $(VERSION)
+BUILD_TAG ?= $(VERSION)
 
 REPO = docksal/vhost-proxy
 NAME = docksal-vhost-proxy
@@ -32,15 +32,15 @@ ARGS = $(filter-out $@,$(MAKECMDGOALS))
 default: build
 
 build:
-	$(DOCKER) build -t $(REPO):$(TAG) .
+	$(DOCKER) build -t $(REPO):$(BUILD_TAG) .
 
 test:
 	# Create test projects before starting tests. This allows using "fin @project" aliases in tests.
 	tests/create_test_projects.sh
-	IMAGE=$(REPO):$(TAG) tests/test.bats
+	IMAGE=$(REPO):$(BUILD_TAG) tests/test.bats
 
 push:
-	$(DOCKER) push $(REPO):$(TAG)
+	$(DOCKER) push $(REPO):$(BUILD_TAG)
 
 conf-vhosts:
 	make exec -e CMD='cat /etc/nginx/conf.d/vhosts.conf'
@@ -51,7 +51,7 @@ start: clean
 	mkdir -p $(PROJECTS_ROOT)
 	# Copy custom certs used in cert tets
 	cp -R tests/certs ~/.docksal
-	IMAGE_VHOST_PROXY=$(REPO):$(TAG) fin system reset vhost-proxy
+	IMAGE_VHOST_PROXY=$(REPO):$(BUILD_TAG) fin system reset vhost-proxy
 	# Give vhost-proxy a bit of time to initialize
 	sleep ${DELAY}
 	# Stop crond, so it does not interfere with tests
@@ -89,7 +89,7 @@ clean:
 	rm -f ~/.docksal/certs/example.com.*
 
 release:
-	@scripts/release.sh
+	@scripts/docker-push.sh
 
 # https://stackoverflow.com/a/6273809/1826109
 %:
