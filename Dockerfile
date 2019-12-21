@@ -51,6 +51,7 @@ RUN set -xe; \
 	# Create a folder for custom vhost certs (mount custom certs here)
 	mkdir -p /etc/certs/custom; \
 	# Generate a self-signed fallback cert
+	# Note: the cert validity is limitted to 2 years (see https://github.com/docksal/service-vhost-proxy/issues/56)
 	openssl req \
 		-batch \
 		-newkey rsa:4086 \
@@ -58,7 +59,7 @@ RUN set -xe; \
 		-nodes \
 		-sha256 \
 		-subj "/CN=*.docksal" \
-		-days 3650 \
+		-days 730 \
 		-out /etc/certs/server.crt \
 		-keyout /etc/certs/server.key; \
 	apk del openssl && rm -rf /var/cache/apk/*;
