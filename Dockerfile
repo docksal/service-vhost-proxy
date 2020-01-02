@@ -50,17 +50,27 @@ RUN set -xe; \
 	; \
 	# Create a folder for custom vhost certs (mount custom certs here)
 	mkdir -p /etc/certs/custom; \
+	# prepare config for certificate
+	echo '[req]' >ext.conf; \
+	echo 'distinguished_name=req' >>ext.conf; \
+	echo '[ext]' >>ext.conf; \
+	echo 'subjectAltName=DNS:docksal,DNS:*.docksal' >>ext.conf; \
+	echo 'extendedKeyUsage = clientAuth, serverAuth' >>ext.conf; \
 	# Generate a self-signed fallback cert
+	# Note: the cert validity is limitted to 2 years (see https://github.com/docksal/service-vhost-proxy/issues/56)
 	openssl req \
-		-batch \
-		-newkey rsa:4086 \
 		-x509 \
-		-nodes \
+		-batch \
+		-newkey rsa:4096 \
 		-sha256 \
-		-subj "/CN=*.docksal" \
-		-days 3650 \
+		-days 730 \
+		-nodes \
+		-subj '/CN=Docksal Project' \
+		-keyout /etc/certs/server.key \
 		-out /etc/certs/server.crt \
-		-keyout /etc/certs/server.key; \
+		-extensions ext \
+		-config ext.conf; \
+	rm -rf ext.conf; \
 	apk del openssl && rm -rf /var/cache/apk/*;
 
 COPY conf/nginx/ /etc/nginx/
