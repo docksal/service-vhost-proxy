@@ -1,7 +1,11 @@
 # Allow using a different docker binary
 DOCKER ?= docker
 
-VERSION ?= dev
+ifeq ($(VERSION),)
+    VERSION = dev
+    LATEST_VERSION = $(VERSION)
+endif
+
 TAG ?= $(VERSION)
 
 REPO = docksal/vhost-proxy
