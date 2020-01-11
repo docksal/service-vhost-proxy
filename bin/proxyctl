@@ -16,12 +16,14 @@ export PATH=/usr/local/bin:$PATH
 is_container_active ()
 {
 	container_id="$1"
-	[[ "$(docker logs --tail 1 --since "$PROJECT_INACTIVITY_TIMEOUT" "$container_id" 2>&1)" != "" ]]
+	# Tail last 5 log entries to account for possible blank lines
+	[[ "$(docker logs --tail 5 --since "$PROJECT_INACTIVITY_TIMEOUT" "$container_id" 2>&1)" != "" ]]
 }
 is_container_dangling ()
 {
 	container_id="$1"
-	[[ "$(docker logs --tail 1 --since "$PROJECT_DANGLING_TIMEOUT" "$container_id" 2>&1)" == "" ]]
+	# Tail last 5 log entries to account for possible blank lines
+	[[ "$(docker logs --tail 5 --since "$PROJECT_DANGLING_TIMEOUT" "$container_id" 2>&1)" == "" ]]
 }
 
 ### Functions ###

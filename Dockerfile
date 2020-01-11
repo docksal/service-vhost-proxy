@@ -1,4 +1,4 @@
-FROM openresty/openresty:1.13.6.2-1-alpine
+FROM openresty/openresty:1.15.8.2-6-alpine
 
 RUN set -xe; \
 	apk add --update --no-cache \
@@ -13,7 +13,7 @@ RUN set -xe; \
 	addgroup -S nginx; \
 	adduser -D -S -h /var/cache/nginx -s /sbin/nologin -G nginx nginx
 
-ARG DOCKER_VERSION=18.06.1-ce
+ARG DOCKER_VERSION=19.03.5
 ARG DOCKER_GEN_VERSION=0.7.4
 ARG GOMPLATE_VERSION=3.0.0
 
@@ -51,17 +51,28 @@ RUN set -xe; \
 	; \
 	# Create a folder for custom vhost certs (mount custom certs here)
 	mkdir -p /etc/certs/custom; \
+	# prepare config for certificate
+	echo '[req]' >ext.conf; \
+	echo 'distinguished_name=req' >>ext.conf; \
+	echo '[ext]' >>ext.conf; \
+	echo 'subjectAltName=DNS:docksal,DNS:*.docksal' >>ext.conf; \
+	echo 'extendedKeyUsage = clientAuth, serverAuth' >>ext.conf; \
 	# Generate a self-signed fallback cert
+	# Note: the cert validity is limitted to 2 years (see https://github.com/docksal/service-vhost-proxy/issues/56)
 	openssl req \
-		-batch \
-		-newkey rsa:4086 \
 		-x509 \
-		-nodes \
+		-batch \
+		-newkey rsa:4096 \
 		-sha256 \
-		-subj "/CN=*.docksal" \
-		-days 3650 \
+		-days 730 \
+		-nodes \
+		-subj '/CN=Docksal Project' \
+		-keyout /etc/certs/server.key \
 		-out /etc/certs/server.crt \
-		-keyout /etc/certs/server.key; \
+		-extensions ext \
+		-config ext.conf; \
+	rm -rf ext.conf; \
+	; \
 	# Install OAuth dependencies
 	git clone -c transfer.fsckobjects=true https://github.com/pintsized/lua-resty-http.git /tmp/lua-resty-http; \
 	cd /tmp/lua-resty-http; \
