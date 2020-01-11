@@ -1,4 +1,4 @@
-FROM openresty/openresty:1.13.6.2-1-alpine
+FROM openresty/openresty:1.15.8.2-6-alpine
 
 RUN set -xe; \
 	apk add --update --no-cache \
