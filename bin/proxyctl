@@ -166,19 +166,26 @@ stop ()
 	# Allow disabling PROJECT_INACTIVITY_TIMEOUT (0 = disabled)
 	[[ "$PROJECT_INACTIVITY_TIMEOUT" == 0 ]] && exit
 
-	# Filter: primary containers with a defined virtual host
+	# Get project names with containers with label io.docksal.activity-monitoring=true
 	local running_projects=$(docker ps \
-		--filter "label=io.docksal.project-root" \
-		--filter "label=io.docksal.virtual-host" \
-		--format '{{ .ID }}:{{ .Label "com.docker.compose.project" }}')
+	  --filter "label=io.docksal.activity-monitoring=true" \
+	  --format '{{ .Label "com.docker.compose.project" }}' | sort -u)
 
-	while read running_project; do
-		# Read variables
-		IFS=':' read container_id project_name <<< "$running_project";
-		# Skip containers with empty values
-		[[ "$project_name" == "" ]] && continue
-		# Skip active projects
-		is_container_active "$container_id" && continue
+	while read project_name; do
+		# Get project containers with label io.docksal.activity-monitoring=true
+		local project_containers=$(docker ps \
+		  --filter "label=io.docksal.activity-monitoring=true" \
+		  --filter "label=com.docker.compose.project=${project_name}" \
+		  --format '{{ .ID }}')
+
+		local project_status=0
+		while read container_id; do
+			# mark project as active if at least one container is active
+			is_container_active "$container_id" && project_status=1 && break
+		done <<< "$project_containers"
+
+		# Skip active project
+		[[ "${project_status}" == "1" ]] && continue
 
 		# Stop inactive project containers
 		log "Stopping inactive project: ${project_name}..."
