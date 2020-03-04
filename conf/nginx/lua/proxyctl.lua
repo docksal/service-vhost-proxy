@@ -62,7 +62,7 @@ if (lock_timestamp == 0) then
 
     -- Lanch project start script
     -- os.execute returs multiple values starting with Lua 5.2
-    local status, exit, exit_code = os.execute("sudo -E /usr/local/bin/proxyctl start $(sudo /usr/local/bin/proxyctl lookup \"" .. ngx.var.host .. "\")")
+    local status, exit, exit_code = os.execute("sudo /usr/local/bin/proxyctl start $(sudo /usr/local/bin/proxyctl lookup \"" .. ngx.var.host .. "\")")
 
     if (exit_code == 0) then
         -- If all went well, reload the page
