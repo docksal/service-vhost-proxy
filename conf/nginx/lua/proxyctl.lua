@@ -1,12 +1,12 @@
 -- Debug pring helper
-function dpr(message)
+local function dpr(message)
     if (tonumber(os.getenv("DEBUG_LOG")) > 0) then
         ngx.log(ngx.STDERR, "DEBUG: " .. message)
     end
 end
 
 -- Helper function to read a file from disk
-function read_file(path)
+local function read_file(path)
     local open = io.open
     local file = open(path, "rb") -- r read mode and b binary mode
     if not file then return nil end
@@ -16,7 +16,7 @@ function read_file(path)
 end
 
 -- Returns loading.html for HTTP_OK and not-found.html otherwise
-function response(status)
+local function response(status)
     -- Load response body from disk
     -- This used to be done with ngx.location.capture, which does not support HTTP/2 and fails with https requests:
     -- See https://github.com/openresty/lua-nginx-module/issues/1285#issuecomment-376418678
@@ -62,7 +62,7 @@ if (lock_timestamp == 0) then
 
     -- Lanch project start script
     -- os.execute returs multiple values starting with Lua 5.2
-    local status, exit, exit_code = os.execute("sudo /usr/local/bin/proxyctl start $(sudo /usr/local/bin/proxyctl lookup \"" .. ngx.var.host .. "\")")
+    local status, exit, exit_code = os.execute("sudo -E /usr/local/bin/proxyctl start $(sudo /usr/local/bin/proxyctl lookup \"" .. ngx.var.host .. "\")")
 
     if (exit_code == 0) then
         -- If all went well, reload the page

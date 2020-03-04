@@ -103,6 +103,9 @@ start ()
 	# Set logging prefix for the function and trigger a log entry
 	export LOG_PREFIX='[start]' && log
 
+	# Disable projects autostart in case PROJECT_AUTOSTART set to 0
+	[[ "$PROJECT_AUTOSTART" == 0 ]] && log "WARNING: Projects autostart is disabled." && return 0
+
 	local type=${1}
 	local id=${2}
 

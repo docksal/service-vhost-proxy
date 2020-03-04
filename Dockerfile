@@ -91,6 +91,8 @@ ENV \
 	PROJECT_INACTIVITY_TIMEOUT=0 \
 	# Disable DANGLING_TIMEOUT by default
 	PROJECT_DANGLING_TIMEOUT=0 \
+	# Enable PROJECT_AUTOSTART by default
+	PROJECT_AUTOSTART=1 \
 	# Disable access log by default
 	ACCESS_LOG=0 \
 	# Disable debug output by default
