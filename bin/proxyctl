@@ -103,6 +103,9 @@ start ()
 	# Set logging prefix for the function and trigger a log entry
 	export LOG_PREFIX='[start]' && log
 
+	# Disable projects autostart in case PROJECT_AUTOSTART set to 0
+	[[ "$PROJECT_AUTOSTART" == 0 ]] && log "WARNING: Projects autostart is disabled." && return 0
+
 	local type=${1}
 	local id=${2}
 
@@ -188,8 +191,7 @@ stop ()
 		# See https://github.com/docksal/service-vhost-proxy/issues/6 for more details on why this is necessary.
 		local network="${project_name}_default"
 		# '-I {}' and '{}' can be used to position the argument passed by xargs.
-		xargs -I {} docker network disconnect "$network" {} <<< "$project_containers"
-		docker network disconnect "$network" docksal-vhost-proxy
+		xargs -I {} docker network disconnect -f "$network" {} 1>/dev/null <<< "$(docker ps -aq --no-trunc -f "network=${network}")"
 		docker network rm "$network"
 	done <<< "$running_projects"
 }

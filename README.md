@@ -58,7 +58,7 @@ docker run -d --name=nodejs \
 ## Advanced proxy configuration
 
 These advanced settings can be used in CI sandbox environments and help keep the resource usage down by stopping 
-Docksal project containers after a period of inactivity. Projects are automatically restarting upon a new HTTP request.
+Docksal project containers after a period of inactivity. Projects are automatically restarted upon a new HTTP request (unless `PROJECT_AUTOSTART` is set to `0`, see below.).
 
 `PROJECT_INACTIVITY_TIMEOUT`
 
@@ -107,6 +107,9 @@ environment specific equivalent, e.g. `docksal-ci.env`).
 
 Note: permanent projects will still be put into hibernation according to `PROJECT_INACTIVITY_TIMEOUT`.
 
+`PROJECT_AUTOSTART`
+
+Setting this variable to `0` will disable autostart projects by visiting project url. This option is active by default (set to `1`).
 
 ## Default and custom certs for HTTPS
 
