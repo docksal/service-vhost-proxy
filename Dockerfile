@@ -27,8 +27,7 @@ COPY ./deps/docker-gen ${REPO_BUILD_SRC}
 # RUN mkdir -p ${REPO_BUILD_SRC}; \
     # git clone --single-branch --branch ${DOCKER_GEN_BUILD_BRANCH} ${DOCKER_GEN_REPO_URL} ${REPO_BUILD_SRC};
 
-RUN make; \
-    make get-deps; \
+RUN make get-deps; \
     make dist
 
 # RUN set -xe; \
