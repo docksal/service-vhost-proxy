@@ -27,8 +27,9 @@ COPY ./deps/docker-gen ${REPO_BUILD_SRC}
 # RUN mkdir -p ${REPO_BUILD_SRC}; \
     # git clone --single-branch --branch ${DOCKER_GEN_BUILD_BRANCH} ${DOCKER_GEN_REPO_URL} ${REPO_BUILD_SRC};
 
-RUN make get-deps; \
-	make dist
+RUN make; \
+    make get-deps; \
+    make dist
 
 # RUN set -xe; \
 # 	curl -sSL -O "https://github.com/jwilder/docker-gen/releases/download/${DOCKER_GEN_VERSION}/${DOCKER_GEN_TARFILE}"; \
@@ -37,27 +38,27 @@ RUN make get-deps; \
 FROM openresty/openresty:1.17.8.1-0-alpine
 
 RUN set -xe; \
-	apk add --update --no-cache \
-		bash \
-		curl \
-		sudo \
-		supervisor \
-	; \
-	rm -rf /var/cache/apk/*
+    apk add --update --no-cache \
+        bash \
+        curl \
+        sudo \
+        supervisor \
+    ; \
+    rm -rf /var/cache/apk/*
 
 RUN set -xe; \
-	addgroup -S nginx; \
-	adduser -D -S -h /var/cache/nginx -s /sbin/nologin -G nginx nginx
+    addgroup -S nginx; \
+    adduser -D -S -h /var/cache/nginx -s /sbin/nologin -G nginx nginx
 
 ARG DOCKER_VERSION=19.03.5
 ARG GOMPLATE_VERSION=3.0.0
 
 # Install docker client binary (if not mounting binary from host)
 RUN set -xe; \
-	curl -sSL -O "https://download.docker.com/linux/static/stable/x86_64/docker-${DOCKER_VERSION}.tgz"; \
-	tar zxf docker-$DOCKER_VERSION.tgz; \
-	mv docker/docker /usr/local/bin ; \
-	rm -rf docker*
+    curl -sSL -O "https://download.docker.com/linux/static/stable/x86_64/docker-${DOCKER_VERSION}.tgz"; \
+    tar zxf docker-$DOCKER_VERSION.tgz; \
+    mv docker/docker /usr/local/bin ; \
+    rm -rf docker*
 
 # Install docker-gen.
 ARG REPO_BUILD_SRC
@@ -71,45 +72,45 @@ COPY --from=docker-gen-builder --chown=501:dialout ${DOCKER_GEN_BIN_PATH} /usr/l
 
 # Install gomplate
 RUN set -xe; \
-	curl -sSL https://github.com/hairyhenderson/gomplate/releases/download/v${GOMPLATE_VERSION}/gomplate_linux-amd64-slim -o /usr/local/bin/gomplate; \
-	chmod +x /usr/local/bin/gomplate
+    curl -sSL https://github.com/hairyhenderson/gomplate/releases/download/v${GOMPLATE_VERSION}/gomplate_linux-amd64-slim -o /usr/local/bin/gomplate; \
+    chmod +x /usr/local/bin/gomplate
 
 RUN set -xe; \
-	# Symlink openresety config folder to /etc/nginx to preserver full compatibility with original nginx setup
-	rm -rf /etc/nginx && ln -s /usr/local/openresty/nginx/conf /etc/nginx ; \
-	mkdir -p /etc/nginx/conf.d ; \
-	# Also symlink nginx binary to a location in PATH
-	ln -s /usr/local/openresty/nginx/sbin/nginx /usr/sbin/nginx
+    # Symlink openresety config folder to /etc/nginx to preserver full compatibility with original nginx setup
+    rm -rf /etc/nginx && ln -s /usr/local/openresty/nginx/conf /etc/nginx ; \
+    mkdir -p /etc/nginx/conf.d ; \
+    # Also symlink nginx binary to a location in PATH
+    ln -s /usr/local/openresty/nginx/sbin/nginx /usr/sbin/nginx
 
 # Certs
 RUN set -xe; \
-	apk add --update --no-cache \
-		openssl \
-	; \
-	# Create a folder for custom vhost certs (mount custom certs here)
-	mkdir -p /etc/certs/custom; \
-	# prepare config for certificate
-	echo '[req]' >ext.conf; \
-	echo 'distinguished_name=req' >>ext.conf; \
-	echo '[ext]' >>ext.conf; \
-	echo 'subjectAltName=DNS:docksal,DNS:*.docksal' >>ext.conf; \
-	echo 'extendedKeyUsage = clientAuth, serverAuth' >>ext.conf; \
-	# Generate a self-signed fallback cert
-	# Note: the cert validity is limitted to 2 years (see https://github.com/docksal/service-vhost-proxy/issues/56)
-	openssl req \
-		-x509 \
-		-batch \
-		-newkey rsa:4096 \
-		-sha256 \
-		-days 730 \
-		-nodes \
-		-subj '/CN=Docksal Project' \
-		-keyout /etc/certs/server.key \
-		-out /etc/certs/server.crt \
-		-extensions ext \
-		-config ext.conf; \
-	rm -rf ext.conf; \
-	apk del openssl && rm -rf /var/cache/apk/*;
+    apk add --update --no-cache \
+        openssl \
+    ; \
+    # Create a folder for custom vhost certs (mount custom certs here)
+    mkdir -p /etc/certs/custom; \
+    # prepare config for certificate
+    echo '[req]' >ext.conf; \
+    echo 'distinguished_name=req' >>ext.conf; \
+    echo '[ext]' >>ext.conf; \
+    echo 'subjectAltName=DNS:docksal,DNS:*.docksal' >>ext.conf; \
+    echo 'extendedKeyUsage = clientAuth, serverAuth' >>ext.conf; \
+    # Generate a self-signed fallback cert
+    # Note: the cert validity is limitted to 2 years (see https://github.com/docksal/service-vhost-proxy/issues/56)
+    openssl req \
+        -x509 \
+        -batch \
+        -newkey rsa:4096 \
+        -sha256 \
+        -days 730 \
+        -nodes \
+        -subj '/CN=Docksal Project' \
+        -keyout /etc/certs/server.key \
+        -out /etc/certs/server.crt \
+        -extensions ext \
+        -config ext.conf; \
+    rm -rf ext.conf; \
+    apk del openssl && rm -rf /var/cache/apk/*;
 
 COPY conf/nginx/ /etc/nginx/
 COPY conf/sudoers /etc/sudoers
@@ -125,20 +126,20 @@ COPY healthcheck.sh /opt/healthcheck.sh
 RUN chmod 0440 /etc/sudoers
 
 ENV \
-	# Disable INACTIVITY_TIMEOUT by default
-	PROJECT_INACTIVITY_TIMEOUT=0 \
-	# Disable DANGLING_TIMEOUT by default
-	PROJECT_DANGLING_TIMEOUT=0 \
-	# Enable PROJECT_AUTOSTART by default
-	PROJECT_AUTOSTART=1 \
-	# Disable access log by default
-	ACCESS_LOG=0 \
-	# Disable debug output by default
-	DEBUG_LOG=0 \
-	# Disable stats log by default
-	STATS_LOG=0 \
-	# Default domain
-	DEFAULT_CERT=docksal
+    # Disable INACTIVITY_TIMEOUT by default
+    PROJECT_INACTIVITY_TIMEOUT=0 \
+    # Disable DANGLING_TIMEOUT by default
+    PROJECT_DANGLING_TIMEOUT=0 \
+    # Enable PROJECT_AUTOSTART by default
+    PROJECT_AUTOSTART=1 \
+    # Disable access log by default
+    ACCESS_LOG=0 \
+    # Disable debug output by default
+    DEBUG_LOG=0 \
+    # Disable stats log by default
+    STATS_LOG=0 \
+    # Default domain
+    DEFAULT_CERT=docksal
 
 # Starter script
 ENTRYPOINT ["docker-entrypoint.sh"]
