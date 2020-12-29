@@ -1,3 +1,39 @@
+# Common build stage arguments.
+ARG REPO_BUILD_SRC=/go/src/github.com/jwilder/docker-gen
+
+FROM golang:1.9 as docker-gen-builder
+
+ENV GOOS=linux
+ENV GOARCH=amd64
+# Added CGO_ENABLED=0 per https://stackoverflow.com/questions/36279253/go-compiled-binary-wont-run-in-an-alpine-docker-container-on-ubuntu-host#comment60185057_36279253.
+ENV CGO_ENABLED=0
+
+RUN go env
+
+# Install and patch docker-gen
+# See https://github.com/jwilder/docker-gen/issues/315#issuecomment-751884561
+ARG DOCKER_GEN_VERSION=0.7.4
+ARG DOCKER_GEN_TARFILE=docker-gen-alpine-linux-amd64-$DOCKER_GEN_VERSION.tar.gz
+# The below args are temporary until a fix is issued for above in the official
+# repo.
+ARG DOCKER_GEN_REPO_URL=git@github.com:buchdag/docker-gen.git
+ARG DOCKER_GEN_BUILD_BRANCH=fix-current-container-id
+ARG REPO_BUILD_SRC
+
+WORKDIR ${REPO_BUILD_SRC}
+
+# Get and place source.
+COPY ./deps/docker-gen ${REPO_BUILD_SRC}
+# RUN mkdir -p ${REPO_BUILD_SRC}; \
+    # git clone --single-branch --branch ${DOCKER_GEN_BUILD_BRANCH} ${DOCKER_GEN_REPO_URL} ${REPO_BUILD_SRC};
+
+RUN make get-deps; \
+	make dist
+
+# RUN set -xe; \
+# 	curl -sSL -O "https://github.com/jwilder/docker-gen/releases/download/${DOCKER_GEN_VERSION}/${DOCKER_GEN_TARFILE}"; \
+# 	tar -C /usr/local/bin -xvzf $DOCKER_GEN_TARFILE;
+
 FROM openresty/openresty:1.17.8.1-0-alpine
 
 RUN set -xe; \
@@ -14,7 +50,6 @@ RUN set -xe; \
 	adduser -D -S -h /var/cache/nginx -s /sbin/nologin -G nginx nginx
 
 ARG DOCKER_VERSION=19.03.5
-ARG DOCKER_GEN_VERSION=0.7.4
 ARG GOMPLATE_VERSION=3.0.0
 
 # Install docker client binary (if not mounting binary from host)
@@ -24,12 +59,15 @@ RUN set -xe; \
 	mv docker/docker /usr/local/bin ; \
 	rm -rf docker*
 
-# Install docker-gen
-ARG DOCKER_GEN_TARFILE=docker-gen-alpine-linux-amd64-$DOCKER_GEN_VERSION.tar.gz
-RUN set -xe; \
-	curl -sSL -O "https://github.com/jwilder/docker-gen/releases/download/${DOCKER_GEN_VERSION}/${DOCKER_GEN_TARFILE}"; \
-	tar -C /usr/local/bin -xvzf $DOCKER_GEN_TARFILE; \
-	rm $DOCKER_GEN_TARFILE
+# Install docker-gen.
+ARG REPO_BUILD_SRC
+ARG DOCKER_GEN_DISTRO_NAME=alpine-linux
+ARG DOCKER_GEN_DISTRO_ARCH=amd64
+ARG DOCKER_GEN_DIST_DIR=${REPO_BUILD_SRC}/dist
+ARG DOCKER_GEN_BIN_NAME=docker-gen
+ARG DOCKER_GEN_BIN_PATH=${DOCKER_GEN_DIST_DIR}/${DOCKER_GEN_DISTRO_NAME}/${DOCKER_GEN_DISTRO_ARCH}/${DOCKER_GEN_BIN_NAME}
+
+COPY --from=docker-gen-builder --chown=501:dialout ${DOCKER_GEN_BIN_PATH} /usr/local/bin
 
 # Install gomplate
 RUN set -xe; \
