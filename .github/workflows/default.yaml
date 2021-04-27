@@ -30,17 +30,6 @@ jobs:
 
     steps:
       -
-        name: Output environment variables
-        run: env
-      # Hack to fix docker-gen in Github Actions
-      # Drops docker daemon config with custom cgroup (which docker-gen does not support)
-      # See https://github.com/jwilder/docker-gen/issues/315
-      -
-        name: Fix docker-gen in Github Actions
-        run: |
-          sudo rm /etc/docker/daemon.json
-          sudo service docker restart
-      -
         name: Source name
         id: source_name
         run: |
