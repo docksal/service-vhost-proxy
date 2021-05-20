@@ -4,23 +4,23 @@
 
 is_edge ()
 {
-	[[ "${TRAVIS_BRANCH}" == "develop" ]]
+	[[ "${SOURCE_BRANCH}" == "develop" ]]
 }
 
 is_stable ()
 {
-	[[ "${TRAVIS_BRANCH}" == "master" ]]
+	[[ "${SOURCE_BRANCH}" == "master" ]]
 }
 
 is_release ()
 {
-	[[ "${TRAVIS_TAG}" != "" ]]
+	[[ "${SOURCE_TAG}" != "" ]]
 }
 
 # Check whether the current build is for a pull request
 is_pr ()
 {
-	[[ "${TRAVIS_PULL_REQUEST}" != "false" ]]
+	[[ "${EVENT_NAME}" == "pull_request" ]]
 }
 
 is_latest ()
@@ -45,7 +45,7 @@ tag_and_push ()
 # ---------------------------- #
 
 # Extract version parts from release tag
-IFS='.' read -a ver_arr <<< "$TRAVIS_TAG"
+IFS='.' read -a ver_arr <<< "$SOURCE_TAG"
 VERSION_MAJOR=${ver_arr[0]#v*}  # 2.7.0 => "2"
 VERSION_MINOR=${ver_arr[1]}  # "2.7.0" => "7"
 

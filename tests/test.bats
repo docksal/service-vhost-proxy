@@ -110,7 +110,7 @@ _healthcheck_wait ()
 @test "Proxy returns 404 for a non-existing virtual-host" {
 	[[ ${SKIP} == 1 ]] && skip
 
-	run curl -sS -I http://nonsense.docksal
+	run curl -sS -I http://nonsense.docksal.site
 	[[ "$output" =~ "HTTP/1.1 404 Not Found" ]]
 	unset output
 }
@@ -124,7 +124,7 @@ _healthcheck_wait ()
 	# Give docker-gen and nginx a little time to reload config
 	sleep ${DELAY}
 
-	run curl -sS -I http://project2.docksal
+	run curl -sS -I http://project2.docksal.site
 	[[ "$output" =~ "HTTP/1.1 200 OK" ]]
 	unset output
 }
@@ -134,12 +134,12 @@ _healthcheck_wait ()
 	[[ ${SKIP} == 1 ]] && skip
 
 	# Non-existing project
-	run make curl -- -sSk -I https://nonsense.docksal
+	run make curl -- -sSk -I https://nonsense.docksal.site
 	[[ "$output" =~ "HTTP/2 404" ]]
 	unset output
 
 	# Existing project
-	run make curl -- -sSk -I https://project2.docksal
+	run make curl -- -sSk -I https://project2.docksal.site
 	[[ "$output" =~ "HTTP/2 200" ]]
 	unset output
 }
@@ -199,14 +199,14 @@ _healthcheck_wait ()
 	# Give docker-gen and nginx a little time to reload config
 	sleep ${DELAY}
 
-	run curl -sS http://project2.docksal
+	run curl -sS http://project2.docksal.site
 	[[ "$output" =~ "Loading project..." ]]
 	unset output
 
 	# Wait for container to become healthy
 	_healthcheck_wait project2_web_1
 
-	run curl -sS http://project2.docksal
+	run curl -sS http://project2.docksal.site
 	[[ "$output" =~ "Project 2" ]]
 	unset output
 }
@@ -220,14 +220,14 @@ _healthcheck_wait ()
 	# Give docker-gen and nginx a little time to reload config
 	sleep ${DELAY}
 
-	run make curl -- -sSk https://project2.docksal
+	run make curl -- -sSk https://project2.docksal.site
 	[[ "$output" =~ "Loading project..." ]]
 	unset output
 
 	# Wait for container to become healthy
 	_healthcheck_wait project2_web_1
 
-	run make curl -- -sSk https://project2.docksal
+	run make curl -- -sSk https://project2.docksal.site
 	[[ "$output" =~ "Project 2" ]]
 	unset output
 }
@@ -292,7 +292,7 @@ _healthcheck_wait ()
 	# Wait for container to become healthy
 	_healthcheck_wait project3_web_1
 
-	run curl -sS http://project3.docksal
+	run curl -sS http://project3.docksal.site
 	[[ "$output" =~ "Hello world: Project 3" ]]
 	unset output
 }
@@ -306,14 +306,14 @@ _healthcheck_wait ()
 		--expose 2580 \
 		-e NGINX_VHOST_PRESET=html \
 		-v $(pwd)/tests/projects/project3:/var/www \
-		--label=io.docksal.virtual-host='standalone.docksal' \
+		--label=io.docksal.virtual-host='standalone.docksal.site' \
 		--label=io.docksal.virtual-port='2580' \
 		docksal/nginx
 
 	# Wait for container to become healthy
 	_healthcheck_wait standalone
 
-	run curl -sS http://standalone.docksal
+	run curl -sS http://standalone.docksal.site
 	[[ "$output" =~ "Hello world: Project 3" ]]
 	unset output
 
@@ -337,7 +337,7 @@ _healthcheck_wait ()
 
 	# Check fallback cert is used by default
 	run make conf-vhosts
-	[[ "$output" =~ "server_name project2.docksal;" ]]
+	[[ "$output" =~ "server_name project2.docksal.site;" ]]
 	[[ "$output" =~ "ssl_certificate /etc/certs/server.crt;" ]]
 	unset output
 
@@ -375,7 +375,7 @@ _healthcheck_wait ()
 
 	# Check server_name is intact while custom cert was picked up
 	run make conf-vhosts
-	[[ "$output" =~ "server_name project2.docksal;" ]]
+	[[ "$output" =~ "server_name project2.docksal.site;" ]]
 	[[ "$output" =~ "ssl_certificate /etc/certs/custom/example.com.crt;" ]]
 	unset output
 }
