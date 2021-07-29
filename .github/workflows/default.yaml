@@ -163,16 +163,15 @@ jobs:
           docker version
           docker info
       -
-        name: Install Docksal
-        # This installs Docksal using the passed DOCKSAL_VERSION value
-        run: curl -sSL http://get.docksal.io | bash
-      -
-        # Reset vhost-proxy using the build image and prepare test project stacks
-        name: Prepare vhost-proxy testing
+        name: Test preparations
         working-directory: ${{ env.BUILD_CONTEXT }}
         env:
           BUILD_IMAGE_TAG: ${{ env.BUILD_IMAGE_TAG }}-${{ env.GIT_SHA7 }}-${{ env.ARCH }}
-        run: make start
+        run: |
+          # This installs Docksal using the passed DOCKSAL_VERSION value
+          curl -sSL http://get.docksal.io | bash
+          # Reset vhost-proxy using the build image and prepare test project stacks
+          make start
       -
         # Run tests
         name: Test
