@@ -134,12 +134,12 @@ _healthcheck_wait ()
 	[[ ${SKIP} == 1 ]] && skip
 
 	# Non-existing project
-	run make curl -- -sSk -I https://nonsense.docksal.site
+	run curl -sSk -I https://nonsense.docksal.site
 	[[ "$output" =~ "HTTP/2 404" ]]
 	unset output
 
 	# Existing project
-	run make curl -- -sSk -I https://project2.docksal.site
+	run curl -sSk -I https://project2.docksal.site
 	[[ "$output" =~ "HTTP/2 200" ]]
 	unset output
 }
@@ -220,14 +220,14 @@ _healthcheck_wait ()
 	# Give docker-gen and nginx a little time to reload config
 	sleep ${RELOAD_DELAY}
 
-	run make curl -- -sSk https://project2.docksal.site
+	run curl -sSk https://project2.docksal.site
 	[[ "$output" =~ "Loading project..." ]]
 	unset output
 
 	# Wait for container to become healthy
 	_healthcheck_wait project2_web_1
 
-	run make curl -- -sSk https://project2.docksal.site
+	run curl -sSk https://project2.docksal.site
 	[[ "$output" =~ "Project 2" ]]
 	unset output
 }
