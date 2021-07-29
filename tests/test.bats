@@ -304,17 +304,15 @@ _healthcheck_wait ()
 	${DOCKER} rm -vf standalone &>/dev/null || true
 	${DOCKER} run --name standalone -d \
 		--expose 2580 \
-		-e NGINX_VHOST_PRESET=html \
-		-v $(pwd)/tests/projects/project3:/var/www \
 		--label=io.docksal.virtual-host='standalone.docksal.site' \
 		--label=io.docksal.virtual-port='2580' \
-		docksal/nginx
+		hashicorp/http-echo:0.2.3 -listen=:2580 -text="Hello world: standalone"
 
 	# Wait for container to become healthy
 	_healthcheck_wait standalone
 
 	run curl -sS http://standalone.docksal.site
-	[[ "$output" =~ "Hello world: Project 3" ]]
+	[[ "$output" =~ "Hello world: standalone" ]]
 	unset output
 
 	# Cleanup
@@ -387,22 +385,23 @@ _healthcheck_wait ()
 	fin stop -a
 
 	# Start a standalone container
-	${DOCKER} rm -vf standalone &>/dev/null || true
-	${DOCKER} run --name standalone -d \
-		--label=io.docksal.virtual-host='nginx.example.com' \
-		docksal/nginx
+	name="standalone-cert1"
+	${DOCKER} rm -vf ${name} &>/dev/null || true
+	${DOCKER} run --name ${name} -d \
+		--label=io.docksal.virtual-host="${name}.example.com" \
+		hashicorp/http-echo:0.2.3 -text="Hello world: ${name}"
 
 	# Wait for container to become healthy
-	_healthcheck_wait standalone
+	_healthcheck_wait ${name}
 
 	# Check custom cert was picked up
 	run make conf-vhosts
-	[[ "$output" =~ "server_name nginx.example.com;" ]]
+	[[ "$output" =~ "server_name ${name}.example.com;" ]]
 	[[ "$output" =~ "ssl_certificate /etc/certs/custom/example.com.crt;" ]]
 	unset output
 
 	# Cleanup
-	${DOCKER} rm -vf standalone &>/dev/null || true
+	${DOCKER} rm -vf ${name} &>/dev/null || true
 }
 
 @test "Certs: proxy picks up custom cert based on cert name override [standalone container]" {
@@ -412,21 +411,22 @@ _healthcheck_wait ()
 	fin stop -a
 
 	# Start a standalone container
-	${DOCKER} rm -vf standalone &>/dev/null || true
-	${DOCKER} run --name standalone -d \
-		--label=io.docksal.virtual-host='apache.example.com' \
-		--label=io.docksal.cert-name='example.com' \
-		docksal/nginx
+	name="standalone-cert2"
+	${DOCKER} rm -vf ${name} &>/dev/null || true
+	${DOCKER} run --name ${name} -d \
+		--label=io.docksal.virtual-host="${name}.example.com" \
+ 		--label=io.docksal.cert-name='example.com' \
+		hashicorp/http-echo:0.2.3 -text="Hello world: ${name}"
 
 	# Wait for container to become healthy
-	_healthcheck_wait standalone
+	_healthcheck_wait ${name}
 
 	# Check server_name is intact while custom cert was picked up
 	run make conf-vhosts
-	[[ "$output" =~ "server_name apache.example.com;" ]]
+	[[ "$output" =~ "server_name ${name}.example.com;" ]]
 	[[ "$output" =~ "ssl_certificate /etc/certs/custom/example.com.crt;" ]]
 	unset output
 
 	# Cleanup
-	${DOCKER} rm -vf standalone &>/dev/null || true
+	${DOCKER} rm -vf ${name} &>/dev/null || true
 }

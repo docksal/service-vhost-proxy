@@ -159,7 +159,8 @@ jobs:
         # This installs Docksal using the passed DOCKSAL_VERSION value
         run: curl -sSL http://get.docksal.io | bash
       -
-        name: Prepare vhost-proxy for testsing
+        # Reset vhost-proxy using the build image and prepare test project stacks
+        name: Prepare vhost-proxy testing
         working-directory: ${{ env.BUILD_CONTEXT }}
         env:
           BUILD_IMAGE_TAG: ${{ env.BUILD_IMAGE_TAG }}-${{ env.GIT_SHA7 }}-${{ env.ARCH }}
