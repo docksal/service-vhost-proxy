@@ -293,7 +293,7 @@ _healthcheck_wait ()
 	_healthcheck_wait project3_web_1
 
 	run curl -sS http://project3.docksal.site
-	[[ "$output" =~ "Hello world: Project 3" ]]
+	[[ "$output" =~ "Project 3" ]]
 	unset output
 }
 
@@ -304,16 +304,17 @@ _healthcheck_wait ()
 	name="standalone"
 	${DOCKER} rm -vf ${name} &>/dev/null || true
 	${DOCKER} run --name ${name} -d \
-		--expose 2580 \
 		--label=io.docksal.virtual-host="${name}.docksal.site" \
 		--label=io.docksal.virtual-port="2580" \
-		hashicorp/http-echo:0.2.3 -listen=:2580 -text="Hello world: ${name}"
+		--env "TEXT=${name}" \
+		--expose 2580 \
+		ealen/echo-server:0.5.1 --port=2580
 
 	# Wait for container to become healthy
 	_healthcheck_wait ${name}
 
 	run curl -sS "http://${name}.docksal.site"
-	[[ "$output" =~ "Hello world: ${name}" ]]
+	[[ "$output" =~ "${name}" ]]
 	unset output
 
 	# Cleanup
@@ -390,7 +391,8 @@ _healthcheck_wait ()
 	${DOCKER} rm -vf ${name} &>/dev/null || true
 	${DOCKER} run --name ${name} -d \
 		--label=io.docksal.virtual-host="${name}.example.com" \
-		hashicorp/http-echo:0.2.3 -text="Hello world: ${name}"
+		--env "TEXT=${name}" \
+		ealen/echo-server:0.5.1 --port=2580
 
 	# Wait for container to become healthy
 	_healthcheck_wait ${name}
@@ -417,7 +419,8 @@ _healthcheck_wait ()
 	${DOCKER} run --name ${name} -d \
 		--label=io.docksal.virtual-host="${name}.example.com" \
  		--label=io.docksal.cert-name='example.com' \
-		hashicorp/http-echo:0.2.3 -text="Hello world: ${name}"
+		--env "TEXT=${name}" \
+		ealen/echo-server:0.5.1 --port=2580
 
 	# Wait for container to become healthy
 	_healthcheck_wait ${name}

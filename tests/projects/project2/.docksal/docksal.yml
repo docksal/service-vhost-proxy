@@ -2,8 +2,7 @@ version: "3"
 
 services:
   web:
-    image: hashicorp/http-echo:0.2.3
-    #network_mode: bridge # Use a shared bridge network
+    image: ealen/echo-server:0.5.1
     expose:
       - 80
     labels:
@@ -12,6 +11,6 @@ services:
       - io.docksal.project-root=${PROJECT_ROOT}
       - io.docksal.virtual-port=80
       - io.docksal.permanent=true # Mark this stack as permanent, so that it's not removed during cleanup
-    command:
-      - '-listen=:80'
-      - '-text="Hello world: Project 2"'
+    environment:
+      - PORT=80
+      - "TEXT=Project 2"
