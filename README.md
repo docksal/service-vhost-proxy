@@ -106,7 +106,7 @@ You can use an arbitrary domain, but then you'll have to handle the DNS for that
 These advanced settings can be used in CI sandbox environments and help keep the resource usage down by stopping 
 Docksal project containers after a period of inactivity.
 
-Projects are automatically restarted upon a new HTTP request (unless `PROJECT_AUTOSTART` is set to `0`, see below.).
+Projects are automatically restarted upon a new HTTP request (unless `PROJECT_AUTOSTART` is set to `0`, see below).
 
 See [Docksal Sandbox Server](https://github.com/docksal/sandbox-server) for the CI sandbox use case.
 
