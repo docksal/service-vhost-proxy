@@ -87,6 +87,8 @@ clean:
 	fin @project3 rm -f &>/dev/null || true
 	$(DOCKER) rm -vf $(NAME) &>/dev/null || true
 	$(DOCKER) rm -vf standalone &>/dev/null || true
+	$(DOCKER) rm -vf standalone-cert1 &>/dev/null || true
+	$(DOCKER) rm -vf standalone-cert2 &>/dev/null || true
 	rm -rf $(PROJECTS_ROOT)
 	rm -f ~/.docksal/certs/example.com.*
 
