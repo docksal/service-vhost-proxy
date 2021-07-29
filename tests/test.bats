@@ -301,22 +301,23 @@ _healthcheck_wait ()
 	[[ ${SKIP} == 1 ]] && skip
 
 	# Start a standalone container
-	${DOCKER} rm -vf standalone &>/dev/null || true
-	${DOCKER} run --name standalone -d \
+	name="standalone"
+	${DOCKER} rm -vf ${name} &>/dev/null || true
+	${DOCKER} run --name ${name} -d \
 		--expose 2580 \
-		--label=io.docksal.virtual-host='standalone.docksal.site' \
-		--label=io.docksal.virtual-port='2580' \
-		hashicorp/http-echo:0.2.3 -listen=:2580 -text="Hello world: standalone"
+		--label=io.docksal.virtual-host="${name}.docksal.site" \
+		--label=io.docksal.virtual-port="2580" \
+		hashicorp/http-echo:0.2.3 -listen=:2580 -text="Hello world: ${name}"
 
 	# Wait for container to become healthy
-	_healthcheck_wait standalone
+	_healthcheck_wait ${name}
 
-	run curl -sS http://standalone.docksal.site
-	[[ "$output" =~ "Hello world: standalone" ]]
+	run curl -sS "http://${name}.docksal.site"
+	[[ "$output" =~ "Hello world: ${name}" ]]
 	unset output
 
 	# Cleanup
-	${DOCKER} rm -vf standalone &>/dev/null || true
+	${DOCKER} rm -vf ${name} &>/dev/null || true
 }
 
 @test "Certs: proxy picks up custom cert based on hostname [project stack]" {
