@@ -122,7 +122,7 @@ _healthcheck_wait ()
 	fin @project2 project restart
 
 	# Give docker-gen and nginx a little time to reload config
-	sleep ${DELAY}
+	sleep ${RELOAD_DELAY}
 
 	run curl -sS -I http://project2.docksal.site
 	[[ "$output" =~ "HTTP/1.1 200 OK" ]]
@@ -197,7 +197,7 @@ _healthcheck_wait ()
 	fin @project2 project stop
 
 	# Give docker-gen and nginx a little time to reload config
-	sleep ${DELAY}
+	sleep ${RELOAD_DELAY}
 
 	run curl -sS http://project2.docksal.site
 	[[ "$output" =~ "Loading project..." ]]
@@ -218,7 +218,7 @@ _healthcheck_wait ()
 	fin @project2 project stop
 
 	# Give docker-gen and nginx a little time to reload config
-	sleep ${DELAY}
+	sleep ${RELOAD_DELAY}
 
 	run make curl -- -sSk https://project2.docksal.site
 	[[ "$output" =~ "Loading project..." ]]
@@ -331,7 +331,7 @@ _healthcheck_wait ()
 	fin @project2 project start
 
 	# Give docker-gen and nginx a little time to reload config
-	sleep ${DELAY}
+	sleep ${RELOAD_DELAY}
 
 	# Check fallback cert is used by default
 	run make conf-vhosts
@@ -344,7 +344,7 @@ _healthcheck_wait ()
 	fin @project2 project start
 
 	# Give docker-gen and nginx a little time to reload config
-	sleep ${DELAY}
+	sleep ${RELOAD_DELAY}
 
 	# Check custom cert was picked up
 	run make conf-vhosts
@@ -369,7 +369,7 @@ _healthcheck_wait ()
 	fin @project2 project start
 
 	# Give docker-gen and nginx a little time to reload config
-	sleep ${DELAY}
+	sleep ${RELOAD_DELAY}
 
 	# Check server_name is intact while custom cert was picked up
 	run make conf-vhosts

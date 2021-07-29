@@ -11,8 +11,10 @@ DOCKSAL_VHOST_PROXY_STATS_LOG ?= 1
 PROJECT_INACTIVITY_TIMEOUT ?= 30s
 PROJECT_DANGLING_TIMEOUT ?= 60s
 
-# A delay necessary for docker-gen/nginx to reload configuration when containers start/stop.
-DELAY = 2s
+# A delay necessary for container and supervisord inside to initialize all services
+INIT_DELAY = 10s
+# A delay necessary for docker-gen to reload configuration when containers start/stop
+RELOAD_DELAY = 2s
 
 # Do not allow to override the value (?=) to prevent possible data loss on the host system
 PROJECTS_ROOT = $(PWD)/tests/projects_mount
@@ -51,7 +53,7 @@ start: clean
 	cp -R tests/certs ~/.docksal
 	IMAGE_VHOST_PROXY=$(BUILD_IMAGE_TAG) fin system reset vhost-proxy
 	# Give vhost-proxy a bit of time to initialize
-	sleep $(DELAY)
+	sleep $(INIT_DELAY)
 	# Stop crond, so it does not interfere with tests
 	make exec -e CMD='supervisorctl stop crond'
 
