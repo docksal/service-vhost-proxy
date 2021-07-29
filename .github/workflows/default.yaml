@@ -59,18 +59,24 @@ jobs:
           echo "GIT_SHA7=${GITHUB_SHA:0:7}" >> $GITHUB_ENV
           echo "BUILD_CONTEXT=${VERSION:-.}" >> ${GITHUB_ENV}
           echo "BUILD_IMAGE_TAG=${IMAGE}:${VERSION_PREFIX}${VERSION}build" >> ${GITHUB_ENV}
+#      -
+#        # Switch docker context to a remote arm64 host
+#        # Used for building heavy images that take too long to build using QEMU + for native arm64 testing.
+#        name: Switch to arm64 builder host
+#        if: ${{ env.ARCH == 'arm64' }}
+#        uses: arwynfr/actions-docker-context@98fc92878d0b856c1112c79b8d0f45353206e186
+#        with:
+#          docker_host: "ssh://ubuntu@${{ secrets.ARM64_HOST }}"
+#          context_name: arm64-host
+#          ssh_key: "${{ secrets.ARM64_HOST_SSH_KEY }}"
+#          ssh_cert: "${{ secrets.ARM64_HOST_SSH_CERT }}"
+#          use_context: true
       -
-        # Switch docker context to a remote arm64 host
-        # TODO: try building/testing arm64 images with QEMU instead.
-        name: Switch to arm64 builder host
-        if: ${{ env.ARCH == 'arm64' }}
-        uses: arwynfr/actions-docker-context@98fc92878d0b856c1112c79b8d0f45353206e186
-        with:
-          docker_host: "ssh://ubuntu@${{ secrets.ARM64_HOST }}"
-          context_name: arm64-host
-          ssh_key: "${{ secrets.ARM64_HOST_SSH_KEY }}"
-          ssh_cert: "${{ secrets.ARM64_HOST_SSH_CERT }}"
-          use_context: true
+        name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+      -
+        name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
       -
         name: Check Docker
         run: |
@@ -90,6 +96,7 @@ jobs:
           context: ${{ env.BUILD_CONTEXT }}
           file: ${{ env.BUILD_CONTEXT }}/Dockerfile
           build-args: VERSION=${{ env.VERSION }}
+          platforms: linux/${{ env.ARCH }}
           # Push intermediate arch-specific build tag to repo
           tags: ${{ env.BUILD_IMAGE_TAG }}-${{ env.GIT_SHA7 }}-${{ env.ARCH }}
           push: ${{ github.event_name != 'pull_request' }} # Don't push for PRs
@@ -140,6 +147,7 @@ jobs:
           echo "BUILD_IMAGE_TAG=${IMAGE}:${VERSION_PREFIX}${VERSION}build" >> ${GITHUB_ENV}
       -
         # Switch docker context to a remote arm64 host
+        # Used for building heavy images that take too long to build using QEMU + for native arm64 testing.
         name: Switch to arm64 builder host
         if: ${{ env.ARCH == 'arm64' }}
         uses: arwynfr/actions-docker-context@98fc92878d0b856c1112c79b8d0f45353206e186
@@ -155,15 +163,15 @@ jobs:
           docker version
           docker info
       -
-        name: Install Docksal
-        # This installs Docksal using the passed DOCKSAL_VERSION value
-        run: curl -sSL http://get.docksal.io | bash
-      -
-        name: Prepare vhost-proxy for testsing
+        name: Test preparations
         working-directory: ${{ env.BUILD_CONTEXT }}
         env:
           BUILD_IMAGE_TAG: ${{ env.BUILD_IMAGE_TAG }}-${{ env.GIT_SHA7 }}-${{ env.ARCH }}
-        run: make start
+        run: |
+          # This installs Docksal using the passed DOCKSAL_VERSION value
+          curl -sSL http://get.docksal.io | bash
+          # Reset vhost-proxy using the build image and prepare test project stacks
+          make start
       -
         # Run tests
         name: Test
