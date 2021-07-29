@@ -162,6 +162,8 @@
 				{{ end }}
 			{{ end }}
 		{{ end }}
+		# Default disabled upstream. This prevents config errors when there are no upstreams.
+		server localhost:80 down;
 	}
 
 		{{/* Get the cert name from io.docksal.cert-name container label */}}
