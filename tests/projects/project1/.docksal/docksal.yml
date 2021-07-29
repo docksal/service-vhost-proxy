@@ -3,6 +3,7 @@ version: "3"
 services:
   web:
     image: ealen/echo-server:0.5.1
+    # Docker Compose v2 alpha3 (needed for arm64) has a bug with "expose", so we have to use "ports" instead
     ports:
       - 80
     labels:
