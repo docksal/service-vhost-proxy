@@ -1,6 +1,10 @@
 # Allow using a different docker binary
 DOCKER ?= docker
 
+# Force BuildKit mode for builds
+# See https://docs.docker.com/buildx/working-with-buildx/
+DOCKER_BUILDKIT=1
+
 IMAGE ?= docksal/vhost-proxy
 BUILD_IMAGE_TAG ?= $(IMAGE):build
 NAME = docksal-vhost-proxy
