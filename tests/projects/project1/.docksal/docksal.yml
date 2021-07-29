@@ -2,8 +2,7 @@ version: "3"
 
 services:
   web:
-    image: hashicorp/http-echo:0.2.3
-    #network_mode: bridge # Use a shared bridge network
+    image: ealen/echo-server:0.5.1
     ports:
       - 80
     labels:
@@ -11,7 +10,6 @@ services:
       - io.docksal.cert-name=${VIRTUAL_HOST_CERT_NAME:-none}
       - io.docksal.project-root=${PROJECT_ROOT}
       - io.docksal.virtual-port=80
-    command:
-      - '-listen=:80'
-      - '-text="Hello world: Project 1"'
-
+    environment:
+      - "TEXT=Project 1"
+    command: ["--port 80"]
