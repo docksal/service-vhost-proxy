@@ -81,11 +81,6 @@ logs-follow:
 
 debug: build start logs-follow
 
-# Curl command with http2 support via a $(DOCKER) container
-# Usage: make curl -e ARGS='-kI https://docksal.io'
-curl:
-	$(DOCKER) run -t --rm --dns=192.168.64.100 --dns=8.8.8.8 badouralix/curl-http2 $(ARGS)
-
 clean:
 	fin @project1 rm -f &>/dev/null || true
 	fin @project2 rm -f &>/dev/null || true
@@ -94,7 +89,6 @@ clean:
 	$(DOCKER) rm -vf standalone &>/dev/null || true
 	rm -rf $(PROJECTS_ROOT)
 	rm -f ~/.docksal/certs/example.com.*
-
 
 # https://stackoverflow.com/a/6273809/1826109
 %:
