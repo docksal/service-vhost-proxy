@@ -1,12 +1,16 @@
-version: "2.1"
+version: "3"
 
 services:
   web:
-    extends:
-      file: ${HOME}/.docksal/stacks/services.yml
-      service: nginx
-    environment:
-    - NGINX_VHOST_PRESET=html
+    image: ealen/echo-server:0.5.1
+    expose:
+      - 80
     labels:
-    # Mark this stack as permanent, so that it's not removed during cleanup
-    - io.docksal.permanent=true
+      - io.docksal.virtual-host=${VIRTUAL_HOST},*.${VIRTUAL_HOST},${VIRTUAL_HOST}.*
+      - io.docksal.cert-name=${VIRTUAL_HOST_CERT_NAME:-none}
+      - io.docksal.project-root=${PROJECT_ROOT}
+      - io.docksal.virtual-port=80
+      - io.docksal.permanent=true # Mark this stack as permanent, so that it's not removed during cleanup
+    environment:
+      - PORT=80
+      - "TEXT=Project 2"

@@ -7,9 +7,12 @@ This image(s) is part of the [Docksal](http://docksal.io) image library.
 ## Features
 
 - HTTP/HTTPS and HTTP/2 virtual host routing
-- On-demand stack starting (upon a HTTP/HTTPS request)
+- Supports Docker Compose based stacks as well as standalone containers (`docker run ...`)
+- On-demand stack starting (upon HTTP/HTTPS request)
 - Stack stopping after a given period of inactivity
 - Stack cleanup after a given period of inactivity
+
+On-demand start and inactivity stop/cleanup features are the key components used by [Docksal Sandbox Server](https://github.com/docksal/sandbox-server). 
 
 ## Usage
 
@@ -24,7 +27,7 @@ docker run -d --name docksal-vhost-proxy --label "io.docksal.group=system" --res
 
 ## Container configuration 
 
-Proxy reads routing settings from container labels. The following labels are supported:
+Proxy reads routing settings from container labels. 
 
 `io.docksal.virtual-host`
 
@@ -37,28 +40,78 @@ Example: `io.docksal.virtual-host=example1.com,*.example2.com`
 `io.docksal.virtual-port`
 
 Virtual port mapping. Useful when a container exposes an non-default HTTP port (other than port `80`).
-Only supports HTTP, single value.  
+Only supports HTTP target services, single value.  
 
 Example: `io.docksal.virtual-port=3000`
 
-### Example
+### Example: Routing to a standalone container
 
-Launching a nodejs app container using port `3000` and host `myapp.example.com`
+Routing `http(s)://myapp.example.com` to a standalone container listening on port `2580` (HTTP).
 
 ```bash
-docker run -d --name=nodejs \
-	-v $(pwd):/app \
+# Start a standalone container
+$ docker run -d --name=http-echo \
 	--label=io.docksal.virtual-host=myapp.example.com \
-	--label=io.docksal.virtual-port=3000 \
-	--expose 3000 \
-	node:alpine \
-	node /app/index.js
+	--label=io.docksal.virtual-port=2580 \
+	--expose 2580 \
+	hashicorp/http-echo:0.2.3 -listen=:2580 -text="Hello world: standalone"
+
+# Verify
+$ DOCKER_HOST=192.168.64.100
+$ curl --header "Host: myapp.example.com" http://${DOCKER_HOST}
+Hello world: standalone
 ``` 
+
+### Example: Routing to a container in a Docker Compose project stack
+
+Routing `http(s)://myproject.example.com` to a container in a Docker Compose stack listening on port `2580` (HTTP).
+
+```bash
+$ cat docker-compose.yaml
+version: "3"
+
+# Uncomment if you want this stack to attach to an existing network (e.g., another Docksal project network)
+#networks:
+#  default:
+#    external: true
+#    name: <project-name>_default
+
+services:
+  web:
+    image: hashicorp/http-echo:0.2.3
+    # Comment out if using a specific existing network
+    network_mode: bridge # Use the default shared 'bridge' network
+    expose:
+      - 2580
+    labels:
+      - "io.docksal.virtual-host=myproject.docksal.site"
+      - "io.docksal.virtual-port=2580"
+    command: ['-listen=:2580', '-text="Hello world: docker-compose"']
+
+$ docker-compose -p myproject up -d
+...
+
+# Verify
+$ curl http://myproject.docksal.site
+"Hello world: docker-compose"
+``` 
+
+Notice that we used `myproject.docksal.site` in this example and did not project the `Host` header in the curl command.
+`*.docksal.site` domains are automatically resolved to `192.168.64.100` (Docksal's canonical IP address).
+
+You can use an arbitrary domain, but then you'll have to handle the DNS for that domain.
 
 ## Advanced proxy configuration
 
 These advanced settings can be used in CI sandbox environments and help keep the resource usage down by stopping 
-Docksal project containers after a period of inactivity. Projects are automatically restarted upon a new HTTP request (unless `PROJECT_AUTOSTART` is set to `0`, see below.).
+Docksal project containers after a period of inactivity.
+
+Projects are automatically restarted upon a new HTTP request (unless `PROJECT_AUTOSTART` is set to `0`, see below).
+
+See [Docksal Sandbox Server](https://github.com/docksal/sandbox-server) for the CI sandbox use case.
+
+See [services.yml](https://github.com/docksal/docksal/blob/develop/stacks/services.yml) in the [docksal/docksal](https://github.com/docksal/docksal) 
+repo for an extensive list of examples of how docksal/vhost-proxy is used in Docksal.
 
 `PROJECT_INACTIVITY_TIMEOUT`
 
@@ -113,7 +166,7 @@ Setting this variable to `0` will disable autostart projects by visiting project
 
 ## Default and custom certs for HTTPS
 
-The default server cert is a self-signed cert for `*.docksal`. It allows a HTTPS connection to be established, but will 
+The default server cert is a self-signed cert for `*.docksal`. It allows an HTTPS connection to be established, but will 
 make browsers complain that the cert is not valid. If that's not acceptable, you can use a valid custom cert. 
 
 To use custom certs, mount a folder with certs to `/etc/certs/custom`. Certs are looked up by virtual host name. 

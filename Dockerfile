@@ -1,4 +1,7 @@
-FROM openresty/openresty:1.17.8.1-0-alpine
+FROM openresty/openresty:1.19.3.2-1-alpine
+
+# amd64 / arm64
+ARG TARGETARCH
 
 RUN set -xe; \
 	apk add --update --no-cache \
@@ -13,27 +16,29 @@ RUN set -xe; \
 	addgroup -S nginx; \
 	adduser -D -S -h /var/cache/nginx -s /sbin/nologin -G nginx nginx
 
-ARG DOCKER_VERSION=19.03.5
-ARG DOCKER_GEN_VERSION=0.7.4
+ARG DOCKER_VERSION=20.10.7
+ARG DOCKER_GEN_VERSION=0.7.6
 ARG GOMPLATE_VERSION=3.0.0
 
 # Install docker client binary (if not mounting binary from host)
 RUN set -xe; \
-	curl -sSL -O "https://download.docker.com/linux/static/stable/x86_64/docker-${DOCKER_VERSION}.tgz"; \
+	# x86_64 / aarch64
+	UNAMEARCH=$(uname -m); \
+	curl -sSL -O "https://download.docker.com/linux/static/stable/${UNAMEARCH}/docker-${DOCKER_VERSION}.tgz"; \
 	tar zxf docker-$DOCKER_VERSION.tgz; \
 	mv docker/docker /usr/local/bin ; \
 	rm -rf docker*
 
 # Install docker-gen
-ARG DOCKER_GEN_TARFILE=docker-gen-alpine-linux-amd64-$DOCKER_GEN_VERSION.tar.gz
+ARG DOCKER_GEN_TARFILE=docker-gen-alpine-linux-${TARGETARCH}-$DOCKER_GEN_VERSION.tar.gz
 RUN set -xe; \
-	curl -sSL -O "https://github.com/jwilder/docker-gen/releases/download/${DOCKER_GEN_VERSION}/${DOCKER_GEN_TARFILE}"; \
+	curl -sSL -O "https://github.com/nginx-proxy/docker-gen/releases/download/${DOCKER_GEN_VERSION}/${DOCKER_GEN_TARFILE}"; \
 	tar -C /usr/local/bin -xvzf $DOCKER_GEN_TARFILE; \
 	rm $DOCKER_GEN_TARFILE
 
 # Install gomplate
 RUN set -xe; \
-	curl -sSL https://github.com/hairyhenderson/gomplate/releases/download/v${GOMPLATE_VERSION}/gomplate_linux-amd64-slim -o /usr/local/bin/gomplate; \
+	curl -sSL https://github.com/hairyhenderson/gomplate/releases/download/v${GOMPLATE_VERSION}/gomplate_linux-${TARGETARCH}-slim -o /usr/local/bin/gomplate; \
 	chmod +x /usr/local/bin/gomplate
 
 RUN set -xe; \

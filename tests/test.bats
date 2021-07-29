@@ -110,7 +110,7 @@ _healthcheck_wait ()
 @test "Proxy returns 404 for a non-existing virtual-host" {
 	[[ ${SKIP} == 1 ]] && skip
 
-	run curl -sS -I http://nonsense.docksal
+	run curl -sS -I http://nonsense.docksal.site
 	[[ "$output" =~ "HTTP/1.1 404 Not Found" ]]
 	unset output
 }
@@ -122,9 +122,9 @@ _healthcheck_wait ()
 	fin @project2 project restart
 
 	# Give docker-gen and nginx a little time to reload config
-	sleep ${DELAY}
+	sleep ${RELOAD_DELAY}
 
-	run curl -sS -I http://project2.docksal
+	run curl -sS -I http://project2.docksal.site
 	[[ "$output" =~ "HTTP/1.1 200 OK" ]]
 	unset output
 }
@@ -134,12 +134,12 @@ _healthcheck_wait ()
 	[[ ${SKIP} == 1 ]] && skip
 
 	# Non-existing project
-	run make curl -- -sSk -I https://nonsense.docksal
+	run curl -sSk -I https://nonsense.docksal.site
 	[[ "$output" =~ "HTTP/2 404" ]]
 	unset output
 
 	# Existing project
-	run make curl -- -sSk -I https://project2.docksal
+	run curl -sSk -I https://project2.docksal.site
 	[[ "$output" =~ "HTTP/2 200" ]]
 	unset output
 }
@@ -197,16 +197,16 @@ _healthcheck_wait ()
 	fin @project2 project stop
 
 	# Give docker-gen and nginx a little time to reload config
-	sleep ${DELAY}
+	sleep ${RELOAD_DELAY}
 
-	run curl -sS http://project2.docksal
+	run curl -sS http://project2.docksal.site
 	[[ "$output" =~ "Loading project..." ]]
 	unset output
 
 	# Wait for container to become healthy
 	_healthcheck_wait project2_web_1
 
-	run curl -sS http://project2.docksal
+	run curl -sS http://project2.docksal.site
 	[[ "$output" =~ "Project 2" ]]
 	unset output
 }
@@ -218,16 +218,16 @@ _healthcheck_wait ()
 	fin @project2 project stop
 
 	# Give docker-gen and nginx a little time to reload config
-	sleep ${DELAY}
+	sleep ${RELOAD_DELAY}
 
-	run make curl -- -sSk https://project2.docksal
+	run curl -sSk https://project2.docksal.site
 	[[ "$output" =~ "Loading project..." ]]
 	unset output
 
 	# Wait for container to become healthy
 	_healthcheck_wait project2_web_1
 
-	run make curl -- -sSk https://project2.docksal
+	run curl -sSk https://project2.docksal.site
 	[[ "$output" =~ "Project 2" ]]
 	unset output
 }
@@ -292,8 +292,8 @@ _healthcheck_wait ()
 	# Wait for container to become healthy
 	_healthcheck_wait project3_web_1
 
-	run curl -sS http://project3.docksal
-	[[ "$output" =~ "Hello world: Project 3" ]]
+	run curl -sS http://project3.docksal.site
+	[[ "$output" =~ "Project 3" ]]
 	unset output
 }
 
@@ -301,24 +301,24 @@ _healthcheck_wait ()
 	[[ ${SKIP} == 1 ]] && skip
 
 	# Start a standalone container
-	${DOCKER} rm -vf standalone &>/dev/null || true
-	${DOCKER} run --name standalone -d \
+	name="standalone"
+	${DOCKER} rm -vf ${name} &>/dev/null || true
+	${DOCKER} run --name ${name} -d \
+		--label=io.docksal.virtual-host="${name}.docksal.site" \
+		--label=io.docksal.virtual-port="2580" \
+		--env "TEXT=${name}" \
 		--expose 2580 \
-		-e NGINX_VHOST_PRESET=html \
-		-v $(pwd)/tests/projects/project3:/var/www \
-		--label=io.docksal.virtual-host='standalone.docksal' \
-		--label=io.docksal.virtual-port='2580' \
-		docksal/nginx
+		ealen/echo-server:0.5.1 --port=2580
 
 	# Wait for container to become healthy
-	_healthcheck_wait standalone
+	_healthcheck_wait ${name}
 
-	run curl -sS http://standalone.docksal
-	[[ "$output" =~ "Hello world: Project 3" ]]
+	run curl -sS "http://${name}.docksal.site"
+	[[ "$output" =~ "${name}" ]]
 	unset output
 
 	# Cleanup
-	${DOCKER} rm -vf standalone &>/dev/null || true
+	${DOCKER} rm -vf ${name} &>/dev/null || true
 }
 
 @test "Certs: proxy picks up custom cert based on hostname [project stack]" {
@@ -333,11 +333,11 @@ _healthcheck_wait ()
 	fin @project2 project start
 
 	# Give docker-gen and nginx a little time to reload config
-	sleep ${DELAY}
+	sleep ${RELOAD_DELAY}
 
 	# Check fallback cert is used by default
 	run make conf-vhosts
-	[[ "$output" =~ "server_name project2.docksal;" ]]
+	[[ "$output" =~ "server_name project2.docksal.site;" ]]
 	[[ "$output" =~ "ssl_certificate /etc/certs/server.crt;" ]]
 	unset output
 
@@ -346,7 +346,7 @@ _healthcheck_wait ()
 	fin @project2 project start
 
 	# Give docker-gen and nginx a little time to reload config
-	sleep ${DELAY}
+	sleep ${RELOAD_DELAY}
 
 	# Check custom cert was picked up
 	run make conf-vhosts
@@ -371,11 +371,11 @@ _healthcheck_wait ()
 	fin @project2 project start
 
 	# Give docker-gen and nginx a little time to reload config
-	sleep ${DELAY}
+	sleep ${RELOAD_DELAY}
 
 	# Check server_name is intact while custom cert was picked up
 	run make conf-vhosts
-	[[ "$output" =~ "server_name project2.docksal;" ]]
+	[[ "$output" =~ "server_name project2.docksal.site;" ]]
 	[[ "$output" =~ "ssl_certificate /etc/certs/custom/example.com.crt;" ]]
 	unset output
 }
@@ -387,22 +387,24 @@ _healthcheck_wait ()
 	fin stop -a
 
 	# Start a standalone container
-	${DOCKER} rm -vf standalone &>/dev/null || true
-	${DOCKER} run --name standalone -d \
-		--label=io.docksal.virtual-host='nginx.example.com' \
-		docksal/nginx
+	name="standalone-cert1"
+	${DOCKER} rm -vf ${name} &>/dev/null || true
+	${DOCKER} run --name ${name} -d \
+		--label=io.docksal.virtual-host="${name}.example.com" \
+		--env "TEXT=${name}" \
+		ealen/echo-server:0.5.1 --port=2580
 
 	# Wait for container to become healthy
-	_healthcheck_wait standalone
+	_healthcheck_wait ${name}
 
 	# Check custom cert was picked up
 	run make conf-vhosts
-	[[ "$output" =~ "server_name nginx.example.com;" ]]
+	[[ "$output" =~ "server_name ${name}.example.com;" ]]
 	[[ "$output" =~ "ssl_certificate /etc/certs/custom/example.com.crt;" ]]
 	unset output
 
 	# Cleanup
-	${DOCKER} rm -vf standalone &>/dev/null || true
+	${DOCKER} rm -vf ${name} &>/dev/null || true
 }
 
 @test "Certs: proxy picks up custom cert based on cert name override [standalone container]" {
@@ -412,21 +414,23 @@ _healthcheck_wait ()
 	fin stop -a
 
 	# Start a standalone container
-	${DOCKER} rm -vf standalone &>/dev/null || true
-	${DOCKER} run --name standalone -d \
-		--label=io.docksal.virtual-host='apache.example.com' \
-		--label=io.docksal.cert-name='example.com' \
-		docksal/nginx
+	name="standalone-cert2"
+	${DOCKER} rm -vf ${name} &>/dev/null || true
+	${DOCKER} run --name ${name} -d \
+		--label=io.docksal.virtual-host="${name}.example.com" \
+ 		--label=io.docksal.cert-name='example.com' \
+		--env "TEXT=${name}" \
+		ealen/echo-server:0.5.1 --port=2580
 
 	# Wait for container to become healthy
-	_healthcheck_wait standalone
+	_healthcheck_wait ${name}
 
 	# Check server_name is intact while custom cert was picked up
 	run make conf-vhosts
-	[[ "$output" =~ "server_name apache.example.com;" ]]
+	[[ "$output" =~ "server_name ${name}.example.com;" ]]
 	[[ "$output" =~ "ssl_certificate /etc/certs/custom/example.com.crt;" ]]
 	unset output
 
 	# Cleanup
-	${DOCKER} rm -vf standalone &>/dev/null || true
+	${DOCKER} rm -vf ${name} &>/dev/null || true
 }
