@@ -65,10 +65,10 @@ exec:
 	$(DOCKER) exec $(NAME) bash -lc "$(CMD)"
 
 exec-it:
-	$(DOCKER) exec -it $(NAME) bash -lic "$(CMD)"
+	@$(DOCKER) exec -it $(NAME) bash -lic "$(CMD)"
 
 shell:
-	make exec-it -e CMD="bash"
+	@make exec-it -e CMD=bash
 
 stop:
 	$(DOCKER) stop $(NAME)
@@ -92,6 +92,7 @@ clean:
 	rm -rf $(PROJECTS_ROOT) &>/dev/null || true
 	rm -f ~/.docksal/certs/example.com.* &>/dev/null || true
 
+# Make it possible to pass arguments to Makefile from command line
 # https://stackoverflow.com/a/6273809/1826109
 %:
 	@:
