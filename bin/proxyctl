@@ -273,6 +273,27 @@ cleanup ()
 		rm -rf "$mounted_project_root"
 	done <<< "$projects"
 
+	# Cleanup the /projects dir from any orphan folders that have no associated project stack
+	# Create an array of project names from the list of projects metadata
+	# Project name is at position 2. ':' is separator.
+	readarray -t project_names < <(printf '%s\n' ${projects} | awk -F ':' '{print $2}')
+	# Create an array from the list of folder names in the /projects directory
+	readarray -t project_folder_names < <(find /projects -type d -mindepth 1 -maxdepth 1 -exec basename {} \;)
+
+	# Get the diff between the two arrays
+	# See: https://stackoverflow.com/questions/2312762/compare-difference-of-two-arrays-in-bash
+	# This will be an array of orphan folder names
+	readarray -t orphan_folder_names < <(printf '%s\n' "${project_names[@]}" "${project_folder_names[@]}" | sort | uniq -u)
+
+	for f in "${orphan_folder_names[@]}"; do
+		path="/projects/${f}"
+		# Ensure we don't delete anything outside the /projects directory (including the dir itself).
+		if [[ $(readlink -f ${path}) == ${path} ]]; then
+			log "Removing orphan directory: ${path}..."
+			rm -rf ${path}
+		fi
+	done
+
 	log "Removing dangling images..."
 	docker image prune -f
 	log "Removing dangling volumes..."
