@@ -86,7 +86,7 @@ _healthcheck_wait ()
 	unset output
 
 	# 'proxyctl cron' should be invoked every minute
-	sleep 60s
+	sleep 60
 
 	run make logs
 	echo "$output" | grep "[proxyctl] [cron]"
@@ -160,8 +160,8 @@ _healthcheck_wait ()
 	echo "$output" | grep project2 | grep "Active: 1"
 	unset output
 
-	# Wait
-	sleep ${PROJECT_INACTIVITY_TIMEOUT}
+	# Wait (must be a number - dropping "s")
+	sleep ${PROJECT_INACTIVITY_TIMEOUT/s}
 
 	# Confirm projects are considered inactive here
 	run make exec -e CMD='proxyctl stats'
@@ -243,8 +243,8 @@ _healthcheck_wait ()
 	run fin @project2 restart
 	unset output
 
-	# Wait
-	sleep ${PROJECT_DANGLING_TIMEOUT}
+	# Wait (must be a number - dropping "s")
+	sleep ${PROJECT_DANGLING_TIMEOUT/s}
 
 	# Confirm projects are considered dangling here.
 	run make exec -e CMD='proxyctl stats'

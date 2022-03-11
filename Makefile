@@ -16,9 +16,9 @@ PROJECT_INACTIVITY_TIMEOUT ?= 30s
 PROJECT_DANGLING_TIMEOUT ?= 60s
 
 # A delay necessary for container and supervisord inside to initialize all services
-INIT_DELAY = 10s
+INIT_DELAY = 10
 # A delay necessary for docker-gen to reload configuration when containers start/stop
-RELOAD_DELAY = 2s
+RELOAD_DELAY = 2
 
 # Do not allow to override the value (?=) to prevent possible data loss on the host system
 PROJECTS_ROOT = $(PWD)/tests/projects_mount
