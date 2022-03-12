@@ -15,6 +15,11 @@ local function read_file(path)
     return content
 end
 
+-- Only allow letters, digits, hyphens, and periods in host name
+local function safe_host(str)
+    return string.gsub(str, "[^%a%d%-%.]", "")
+end
+
 -- Returns loading.html for HTTP_OK and not-found.html otherwise
 local function response(status)
     -- Load response body from disk
@@ -34,31 +39,33 @@ local function response(status)
     ngx.print(response_body)
 
     -- Unlock host before exiting
-    dpr("Unlocking " .. ngx.var.host)
-    ngx.shared.hosts:delete(ngx.var.host)
+    local host = safe_host(ngx.var.host)
+    dpr("Unlocking " .. host)
+    ngx.shared.hosts:delete(host)
 
     return ngx.exit(status)
 end
 
 -- Get the host lock timestamp
+local host = safe_host(ngx.var.host)
 local timestamp = os.time(os.date("!*t"))
-local lock_timestamp = ngx.shared.hosts:get(ngx.var.host)
+local lock_timestamp = ngx.shared.hosts:get(host)
 
 if (lock_timestamp == nil) then lock_timestamp = 0 end
 local lock_age = timestamp - lock_timestamp
 
 if (lock_age > 30) then
     -- Break the lock if it is older than 30s
-    dpr("Unlocking a stale lock (" .. lock_age .. "s) for " .. ngx.var.host)
-    ngx.shared.hosts:delete(ngx.var.host)
+    dpr("Unlocking a stale lock (" .. lock_age .. "s) for " .. host)
+    ngx.shared.hosts:delete(host)
 end
 
 if (lock_timestamp == 0) then
     -- No lock timestamp = can proceed with project wake up
 
-    dpr("Locking " .. ngx.var.host)
+    dpr("Locking " .. host)
     lock_timestamp = os.time(os.date("!*t"))
-    ngx.shared.hosts:set(ngx.var.host, lock_timestamp)
+    ngx.shared.hosts:set(host, lock_timestamp)
 
     -- Lanch project start script
     -- os.execute returs multiple values starting with Lua 5.2
@@ -75,5 +82,5 @@ if (lock_timestamp == 0) then
     end
 else
     -- There is an active lock, so skip for now
-    dpr(ngx.var.host .. " is locked. Skipping.")
+    dpr(host .. " is locked. Skipping.")
 end
