@@ -30,6 +30,8 @@ local function response(status)
     local response_body
     if (status == ngx.HTTP_ACCEPTED) then
         response_body = read_file('/var/www/202.html')
+    elseif (status == ngx.HTTP_NOT_ACCEPTABLE) then
+        response_body = read_file('/var/www/406.html')
     else
         response_body = read_file('/var/www/404.html')
     end
@@ -68,13 +70,22 @@ if (lock_timestamp == 0) then
     ngx.shared.hosts:set(host, lock_timestamp)
 
     -- Lanch project start script
-    -- os.execute returs multiple values starting with Lua 5.2
-    local status, exit, exit_code = os.execute("sudo -E /usr/local/bin/proxyctl start $(sudo /usr/local/bin/proxyctl lookup \"" .. ngx.var.host .. "\")")
+    -- os.execute returns multiple values starting with Lua 5.2
+    local cmd = "sudo -E /usr/local/bin/proxyctl wakeup " .. host
+    local status, exit, exit_code = os.execute(cmd)
+
+    -- Debug return codes
+    dpr("cmd: " .. cmd)
+    dpr("exit_code: " .. exit_code)
 
     if (exit_code == 0) then
         -- If all went well, reload the page
         dpr("Container start succeeded")
         response(ngx.HTTP_ACCEPTED)
+    elseif (exit_code == 2) then
+        -- Autostart disabled, return 406
+        dpr("Container start disabled")
+        response(ngx.HTTP_NOT_ACCEPTABLE)
     else
         -- If proxyctl start failed (non-existing environment or something went wrong), return 404
         dpr("Container start failed")
