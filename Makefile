@@ -12,13 +12,14 @@ NAME = docksal-vhost-proxy
 DOCKSAL_VHOST_PROXY_ACCESS_LOG ?= 1
 DOCKSAL_VHOST_PROXY_DEBUG_LOG ?= 1
 DOCKSAL_VHOST_PROXY_STATS_LOG ?= 1
+PROJECT_AUTOSTART ?= 1
 PROJECT_INACTIVITY_TIMEOUT ?= 30s
 PROJECT_DANGLING_TIMEOUT ?= 60s
 
 # A delay necessary for container and supervisord inside to initialize all services
-INIT_DELAY = 10s
+INIT_DELAY = 10
 # A delay necessary for docker-gen to reload configuration when containers start/stop
-RELOAD_DELAY = 2s
+RELOAD_DELAY = 2
 
 # Do not allow to override the value (?=) to prevent possible data loss on the host system
 PROJECTS_ROOT = $(PWD)/tests/projects_mount
@@ -65,10 +66,10 @@ exec:
 	$(DOCKER) exec $(NAME) bash -lc "$(CMD)"
 
 exec-it:
-	$(DOCKER) exec -it $(NAME) bash -lic "$(CMD)"
+	@$(DOCKER) exec -it $(NAME) bash -lic "$(CMD)"
 
 shell:
-	make exec-it -e CMD="bash"
+	@make exec-it -e CMD=bash
 
 stop:
 	$(DOCKER) stop $(NAME)
@@ -92,6 +93,7 @@ clean:
 	rm -rf $(PROJECTS_ROOT) &>/dev/null || true
 	rm -f ~/.docksal/certs/example.com.* &>/dev/null || true
 
+# Make it possible to pass arguments to Makefile from command line
 # https://stackoverflow.com/a/6273809/1826109
 %:
 	@:

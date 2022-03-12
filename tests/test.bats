@@ -86,7 +86,7 @@ _healthcheck_wait ()
 	unset output
 
 	# 'proxyctl cron' should be invoked every minute
-	sleep 60s
+	sleep 60
 
 	run make logs
 	echo "$output" | grep "[proxyctl] [cron]"
@@ -134,12 +134,12 @@ _healthcheck_wait ()
 	[[ ${SKIP} == 1 ]] && skip
 
 	# Non-existing project
-	run curl -sSk -I https://nonsense.docksal.site
+	run curl -sSk -m 1 -I https://nonsense.docksal.site
 	[[ "$output" =~ "HTTP/2 404" ]]
 	unset output
 
 	# Existing project
-	run curl -sSk -I https://project2.docksal.site
+	run curl -sSk -m 1 -I https://project2.docksal.site
 	[[ "$output" =~ "HTTP/2 200" ]]
 	unset output
 }
@@ -160,8 +160,8 @@ _healthcheck_wait ()
 	echo "$output" | grep project2 | grep "Active: 1"
 	unset output
 
-	# Wait
-	sleep ${PROJECT_INACTIVITY_TIMEOUT}
+	# Wait (must be a number - dropping "s")
+	sleep ${PROJECT_INACTIVITY_TIMEOUT/s}
 
 	# Confirm projects are considered inactive here
 	run make exec -e CMD='proxyctl stats'
@@ -190,7 +190,7 @@ _healthcheck_wait ()
 	unset output
 }
 
-@test "Proxy starts an existing stopped project [HTTP]" {
+@test "Proxy starts an existing stopped project (within 5s) [HTTP]" {
 	[[ ${SKIP} == 1 ]] && skip
 
 	# Make sure the project is stopped
@@ -199,7 +199,8 @@ _healthcheck_wait ()
 	# Give docker-gen and nginx a little time to reload config
 	sleep ${RELOAD_DELAY}
 
-	run curl -sS http://project2.docksal.site
+	# Expect the start to happen within 5s (-m 5)
+	run curl -sS -m 5 http://project2.docksal.site
 	[[ "$output" =~ "Loading project..." ]]
 	unset output
 
@@ -211,7 +212,7 @@ _healthcheck_wait ()
 	unset output
 }
 
-@test "Proxy starts an existing stopped project [HTTPS]" {
+@test "Proxy starts an existing stopped project (within 5s) [HTTPS]" {
 	[[ ${SKIP} == 1 ]] && skip
 
 	# Make sure the project is stopped
@@ -220,14 +221,15 @@ _healthcheck_wait ()
 	# Give docker-gen and nginx a little time to reload config
 	sleep ${RELOAD_DELAY}
 
-	run curl -sSk https://project2.docksal.site
+	# Expect the start to happen within 5s (-m 5)
+	run curl -sSk -m 5 https://project2.docksal.site
 	[[ "$output" =~ "Loading project..." ]]
 	unset output
 
 	# Wait for container to become healthy
 	_healthcheck_wait project2_web_1
 
-	run curl -sSk https://project2.docksal.site
+	run curl -sSk -m 1 https://project2.docksal.site
 	[[ "$output" =~ "Project 2" ]]
 	unset output
 }
@@ -243,8 +245,8 @@ _healthcheck_wait ()
 	run fin @project2 restart
 	unset output
 
-	# Wait
-	sleep ${PROJECT_DANGLING_TIMEOUT}
+	# Wait (must be a number - dropping "s")
+	sleep ${PROJECT_DANGLING_TIMEOUT/s}
 
 	# Confirm projects are considered dangling here.
 	run make exec -e CMD='proxyctl stats'

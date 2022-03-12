@@ -89,13 +89,40 @@ lookup ()
 			log "ERROR: No matching projects or containers found for virtual host '${vhost}'."
 			return 1
 		else
-			log "Found a standalone container '$container_id'..."
+			log "${vhost} belongs to ${container_id} (container)"
+			# Return value to be passed to start(type, id)
 			echo "container ${container_id}"
 		fi
 	else
-		log "Found a project stack '$project_name'..."
+		log "${vhost} belongs to ${project_name} (project)"
+		# Return value to be passed to start(type, id)
 		echo "project ${project_name}"
 	fi
+}
+
+# HTTP request handler for nginx
+# Looks up a container or project by Host (passed from nginx) and starts it up.
+# Skips start if autostart is disabled
+# Return codes:
+# 0 - nginx will return a "Project loading" screen, but no project will be loaded in this case.
+# 1 - nginx will return a "Project not found" screen.
+# 2 - nginx will return a "Project autostart disabled" screen.
+# See conf/nginx/lua/proxyctl.lua
+wakeup ()
+{
+	host=${1}
+	# Return 1 if lookup failed
+	id=$(lookup "${host}") || exit 1
+
+	log "Matched ${host} to ${id}"
+
+	# Skip if autostart is disabled
+	if [[ "$PROJECT_AUTOSTART" == 0 ]]; then
+		log "Skipping autostart for: ${id} (autostart is disabled)"
+		exit 2
+	fi
+
+	start ${id} && exit 0 || exit 1
 }
 
 start ()
@@ -103,22 +130,19 @@ start ()
 	# Set logging prefix for the function and trigger a log entry
 	export LOG_PREFIX='[start]' && log
 
-	# Disable projects autostart in case PROJECT_AUTOSTART set to 0
-	[[ "$PROJECT_AUTOSTART" == 0 ]] && log "WARNING: Projects autostart is disabled." && return 0
-
-	local type=${1}
-	local id=${2}
+	local type=${1} # "container" or "project"
+	local id=${2} # container id or project name
 
 	[[ "$type" == "" ]] && log "ERROR: Empty type." && return 1
 	[[ "$id" == "" ]] && log "ERROR: Empty id." && return 1
 
 	if [[ "$type" == "container" ]]; then
 		local container_id=${id}
-		log "Starting a standalone container '$container_id'..."
-		docker start "$container_id"
+		log "Starting ${container_id} (container)..."
+		docker start ${container_id}
 	elif [[ "$type" == "project" ]]; then
 		local project_name=${id}
-		log "Starting project stack for '${project_name}'..."
+		log "Starting ${project_name} (project)..."
 
 		# Connecting/re-connecting vhost-proxy to the project network
 		local network="${project_name}_default"
@@ -127,7 +151,7 @@ start ()
 		# Reconnect vhost-proxy to the project network (in case vhost-proxy has been recently reset)
 		docker network connect "$network" docksal-vhost-proxy >/dev/null 2>&1
 		if [[ $? == 0 ]]; then
-			log "Connected proxy to network '${network}'."
+			log "Connected proxy to ${network} network."
 		fi
 
 		# Reconnect project containers to the re-created network
@@ -273,6 +297,27 @@ cleanup ()
 		rm -rf "$mounted_project_root"
 	done <<< "$projects"
 
+	# Cleanup the /projects dir from any orphan folders that have no associated project stack
+	# Create an array of project names from the list of projects metadata
+	# Project name is at position 2. ':' is separator.
+	readarray -t project_names < <(printf '%s\n' ${projects} | awk -F ':' '{print $2}')
+	# Create an array from the list of folder names in the /projects directory
+	readarray -t project_folder_names < <(find /projects -type d -mindepth 1 -maxdepth 1 -exec basename {} \;)
+
+	# Get the diff between the two arrays
+	# See: https://stackoverflow.com/questions/2312762/compare-difference-of-two-arrays-in-bash
+	# This will be an array of orphan folder names
+	readarray -t orphan_folder_names < <(printf '%s\n' "${project_names[@]}" "${project_folder_names[@]}" | sort | uniq -u)
+
+	for f in "${orphan_folder_names[@]}"; do
+		path="/projects/${f}"
+		# Ensure we don't delete anything outside the /projects directory (including the dir itself).
+		if [[ $(readlink -f ${path}) == ${path} ]]; then
+			log "Removing orphan directory: ${path}..."
+			rm -rf ${path}
+		fi
+	done
+
 	log "Removing dangling images..."
 	docker image prune -f
 	log "Removing dangling volumes..."
@@ -378,6 +423,10 @@ case "$1" in
 		shift
 		lookup "$@"
 		;;
+	wakeup)
+		shift
+		wakeup "$@"
+		;;
 	start)
 		shift
 		start "$@"
@@ -401,5 +450,5 @@ case "$1" in
 		stats
 		;;
 	*)
-		echo "Usage: $0 lookup <vhost>|start|stop|cron|notify|networks|cleanup|stats"
+		echo "Usage: $0 lookup <vhost>|wakeup <vhost>|start|stop|cron|notify|networks|cleanup|stats"
 esac
