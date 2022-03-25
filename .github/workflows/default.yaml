@@ -64,7 +64,7 @@ jobs:
 #        # Used for building heavy images that take too long to build using QEMU + for native arm64 testing.
 #        name: Switch to arm64 builder host
 #        if: ${{ env.ARCH == 'arm64' }}
-#        uses: arwynfr/actions-docker-context@98fc92878d0b856c1112c79b8d0f45353206e186
+#        uses: arwynfr/actions-docker-context@v2
 #        with:
 #          docker_host: "ssh://ubuntu@${{ secrets.ARM64_HOST }}"
 #          context_name: arm64-host
@@ -150,7 +150,7 @@ jobs:
         # Used for building heavy images that take too long to build using QEMU + for native arm64 testing.
         name: Switch to arm64 builder host
         if: ${{ env.ARCH == 'arm64' }}
-        uses: arwynfr/actions-docker-context@98fc92878d0b856c1112c79b8d0f45353206e186
+        uses: arwynfr/actions-docker-context@v2
         with:
           docker_host: "ssh://ubuntu@${{ secrets.ARM64_HOST }}"
           context_name: arm64-host
