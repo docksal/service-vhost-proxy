@@ -87,8 +87,8 @@ http {
 	proxy_buffers			4 256k;
 	proxy_busy_buffers_size	256k;
 
-	# Allow large POSTs
-	client_max_body_size	500M;
+	# Disable limits to avoid "HTTP 413 (Request Entity Too Large)" for large uploads
+	client_max_body_size	0;
 
 	# Fixes random issues with POST requests
 	# See https://github.com/dockerfile/nginx/issues/4#issuecomment-209440995

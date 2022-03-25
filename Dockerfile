@@ -37,8 +37,9 @@ RUN set -xe; \
 	rm $DOCKER_GEN_TARFILE
 
 # Install gomplate
+# IMPORTANT: DO NOT used the "slim" version - it's broken on arm64.
 RUN set -xe; \
-	curl -sSL https://github.com/hairyhenderson/gomplate/releases/download/v${GOMPLATE_VERSION}/gomplate_linux-${TARGETARCH}-slim -o /usr/local/bin/gomplate; \
+	curl -sSL https://github.com/hairyhenderson/gomplate/releases/download/v${GOMPLATE_VERSION}/gomplate_linux-${TARGETARCH} -o /usr/local/bin/gomplate; \
 	chmod +x /usr/local/bin/gomplate
 
 RUN set -xe; \
