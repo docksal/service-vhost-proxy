@@ -17,7 +17,7 @@ RUN set -xe; \
 	adduser -D -S -h /var/cache/nginx -s /sbin/nologin -G nginx nginx
 
 ARG DOCKER_VERSION=20.10.12
-ARG DOCKER_GEN_VERSION=0.8.2
+ARG DOCKER_GEN_VERSION=0.14.7
 ARG GOMPLATE_VERSION=3.10.0
 
 # Install docker client binary (if not mounting binary from host)
