@@ -11,4 +11,4 @@ services:
       - io.docksal.permanent=true # Mark this stack as permanent, so that it's not removed during cleanup
     environment:
       - PORT=80
-      - "TEXT=Project 2"
+      - TEXT="Project 2"
