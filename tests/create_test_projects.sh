@@ -4,7 +4,7 @@
 # Pre-creating test projects allows using fin project aliases ('fin @project <command>'), which simplifies things.
 for dir in tests/projects/*; do
 
-	cwd=$(pwd)
+	cwd=${PWD}
 
 	project=$(basename ${dir})
 	mkdir -p ${PROJECTS_ROOT}
