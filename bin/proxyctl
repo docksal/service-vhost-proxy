@@ -57,7 +57,6 @@ lookup ()
 		if [[ "$container_id" == "" ]]; then
 			# Get a list of all (running and stopped) projects and their virtual host label values
 			local all_projects=$(docker ps -a \
-				--filter "label=io.docksal.project-root" \
 				--filter "label=io.docksal.virtual-host" \
 				--format '{{ .ID }}:{{.Label "com.docker.compose.project"}}:{{.Label "io.docksal.virtual-host"}}')
 
