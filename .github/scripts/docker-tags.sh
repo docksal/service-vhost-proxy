@@ -9,7 +9,7 @@
 # Declare expected variables
 IMAGE=${IMAGE} # docksal/cli
 VERSION_PREFIX=${VERSION_PREFIX} # php
-VERSION=${VERSION} # 7.4
+VERSION=${VERSION} # 8.1
 VERSION_SUFFIX=${VERSION_SUFFIX} # ide
 REGISTRY="${REGISTRY}" # ghcr.io
 GITHUB_REF=${GITHUB_REF} # refs/heads/develop, refs/heads/master, refs/tags/v1.0.0
@@ -46,7 +46,7 @@ set_output() {
 	# Print with new lines for output in build logs
 	(IFS=$'\n'; echo "${outputArr[*]}")
 	# Using newlines in output variables does not seem to work, so we'll use comas
-	(IFS=$','; echo "::set-output name=tags::${outputArr[*]}")
+	(IFS=$','; echo tags="${outputArr[*]}" | tee -a ${GITHUB_OUTPUT})
 }
 
 # Image tags
