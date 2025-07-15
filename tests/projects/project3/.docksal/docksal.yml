@@ -1,8 +1,6 @@
-version: "3"
-
 services:
   web:
-    image: ealen/echo-server:0.5.1
+    image: ealen/echo-server:0.9.2
     expose:
       - 2580 # Custom port
     labels:

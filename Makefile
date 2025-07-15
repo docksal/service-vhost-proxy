@@ -22,7 +22,7 @@ INIT_DELAY = 10
 RELOAD_DELAY = 2
 
 # Do not allow to override the value (?=) to prevent possible data loss on the host system
-PROJECTS_ROOT = $(PWD)/tests/projects_mount
+PROJECTS_ROOT = $(pwd)/tests/projects_mount
 
 -include tests/env_make
 
