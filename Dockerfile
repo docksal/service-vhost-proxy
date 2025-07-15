@@ -1,4 +1,4 @@
-FROM openresty/openresty:1.19.9.1-5-alpine
+FROM openresty/openresty:1.25.3.2-5-alpine-apk
 
 # amd64 / arm64
 ARG TARGETARCH
@@ -16,9 +16,9 @@ RUN set -xe; \
 	addgroup -S nginx; \
 	adduser -D -S -h /var/cache/nginx -s /sbin/nologin -G nginx nginx
 
-ARG DOCKER_VERSION=20.10.12
+ARG DOCKER_VERSION=28.3.0
 ARG DOCKER_GEN_VERSION=0.14.7
-ARG GOMPLATE_VERSION=3.10.0
+ARG GOMPLATE_VERSION=4.3.3
 
 # Install docker client binary (if not mounting binary from host)
 RUN set -xe; \
@@ -37,7 +37,6 @@ RUN set -xe; \
 	rm $DOCKER_GEN_TARFILE
 
 # Install gomplate
-# IMPORTANT: DO NOT used the "slim" version - it's broken on arm64.
 RUN set -xe; \
 	curl -sSL https://github.com/hairyhenderson/gomplate/releases/download/v${GOMPLATE_VERSION}/gomplate_linux-${TARGETARCH} -o /usr/local/bin/gomplate; \
 	chmod +x /usr/local/bin/gomplate
